@@ -4,426 +4,438 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão Pessoal - Foco Consultoria 2026</title>
-    <!-- Bibliotecas de Terceiros -->
+    <!-- Tailwind para Estilização -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React e Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Bibliotecas de Gráficos e Exportação -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
     <style>
-        :root { --orange: #FF6600; --black: #000000; --gray: #121212; --card: #1C1C1C; }
-        body { background-color: var(--black); color: white; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; }
-        
-        /* Layout */
-        .sidebar { background-color: var(--gray); border-right: 1px solid #333; width: 280px; height: 100vh; flex-shrink: 0; transition: 0.3s; }
-        .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 40px; }
-        
-        /* Menu */
-        .menu-item { padding: 14px 24px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #aaa; font-weight: 600; font-size: 13px; transition: 0.2s; border-left: 4px solid transparent; }
-        .menu-item:hover { background: #222; color: var(--orange); }
-        .menu-item.active { background: #222; color: var(--orange); border-left-color: var(--orange); }
-        
-        /* Componentes */
-        .card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 24px; }
-        .btn-orange { background-color: var(--orange); color: white; font-weight: 700; border-radius: 8px; padding: 12px 20px; transition: 0.2s; cursor: pointer; }
-        .btn-orange:hover { filter: brightness(1.1); transform: translateY(-1px); }
-        
-        input, select, textarea { background: #262626 !important; color: white !important; border: 1px solid #444 !important; padding: 12px; border-radius: 8px; width: 100%; outline: none; }
-        input:focus { border-color: var(--orange) !important; }
-        
-        .chart-container { position: relative; height: 250px; }
-        .hidden { display: none; }
-
-        /* Mobile */
-        @media (max-width: 768px) {
-            .sidebar { position: fixed; left: -280px; z-index: 100; }
-            .sidebar.mobile-open { left: 0; }
-            .main-content { padding: 20px; }
-        }
+        :root { --orange: #FF6600; --black: #000000; --gray: #121212; }
+        body { background-color: var(--black); color: white; font-family: sans-serif; margin: 0; }
+        .sidebar { background-color: var(--gray); border-right: 1px solid #333; min-height: 100vh; }
+        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 20px; }
+        .btn-orange { background-color: var(--orange); color: white; font-weight: bold; border-radius: 8px; padding: 10px 15px; cursor: pointer; border: none; }
+        .active-menu { border-left: 4px solid var(--orange); background: #1e1e1e; color: var(--orange) !important; }
+        input, select, textarea { background: #222 !important; color: white !important; border: 1px solid #444 !important; padding: 8px !important; border-radius: 6px !important; width: 100%; margin-top: 4px; }
+        .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; font-size: 11px; display: block; }
+        .dropzone:hover { border-color: var(--orange); background: #1e1e1e; }
+        @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
     </style>
 </head>
-<body class="flex">
+<body>
+    <div id="root"></div>
 
-    <!-- SIDEBAR -->
-    <nav id="sidebar" class="sidebar flex flex-col no-print">
-        <div class="p-8 text-center border-b border-gray-800">
-            <div class="relative inline-block group">
-                <img id="user-photo" src="https://via.placeholder.com/100" class="w-20 h-20 rounded-full border-2 border-orange-500 mx-auto object-cover mb-2">
-                <label for="upload-photo" class="absolute bottom-0 right-0 bg-orange-500 p-1 rounded-full cursor-pointer text-xs hover:scale-110 transition">✏️</label>
-                <input type="file" id="upload-photo" class="hidden" accept="image/*">
-            </div>
-            <h2 id="user-name-display" class="text-orange-500 font-black italic text-lg uppercase tracking-tighter mt-2">FOCO CONSULTORIA</h2>
-            <p class="text-[10px] text-gray-500 uppercase font-bold">Gestão Pessoal 2026</p>
-        </div>
-        
-        <div class="flex-1 mt-4 overflow-y-auto">
-            <div class="menu-item active" onclick="nav('dashboard')"><span>📊</span> DASHBOARD</div>
-            <div class="menu-item" onclick="nav('cadastros')"><span>📁</span> CATEGORIAS & BANCOS</div>
-            <div class="menu-item" onclick="nav('lancamentos')"><span>💸</span> LANÇAMENTOS & UP</div>
-            <div class="menu-item" onclick="nav('cartoes')"><span>💳</span> CARTÕES DE CRÉDITO</div>
-            <div class="menu-item" onclick="nav('timeline')"><span>📈</span> FLUXO DE CAIXA</div>
-            <div class="menu-item" onclick="nav('conversor')"><span>💱</span> CONVERSOR</div>
-            <div class="menu-item" onclick="nav('mercado')"><span>🏛️</span> MERCADO 2026</div>
-            <div class="menu-item" onclick="nav('relatorios')"><span>📑</span> RELATÓRIOS</div>
-        </div>
-    </nav>
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
 
-    <!-- MAIN -->
-    <main class="main-content">
-        <header class="flex justify-between items-center mb-10 pb-4 border-b border-gray-800">
-            <h1 id="view-title" class="text-2xl font-black text-orange-500 italic uppercase">Dashboard</h1>
-            <div class="flex gap-3">
-                <button class="md:hidden btn-orange py-2" onclick="toggleMobileMenu()">MENU</button>
-                <button class="hidden md:block bg-gray-800 px-4 py-2 rounded text-xs font-bold" onclick="window.print()">🖨️ IMPRIMIR</button>
-            </div>
-        </header>
+        function App() {
+            // --- INICIALIZAÇÃO SEGURA ---
+            const getSavedData = (key, defaultValue) => {
+                try {
+                    const saved = localStorage.getItem(key);
+                    return saved ? JSON.parse(saved) : defaultValue;
+                } catch (e) {
+                    return defaultValue;
+                }
+            };
 
-        <div id="views">
+            const [view, setView] = useState('dashboard');
+            const [sidebarOpen, setSidebarOpen] = useState(true);
+            const [transactions, setTransactions] = useState(() => getSavedData('foco_trans', []));
+            const [categories, setCategories] = useState(() => getSavedData('foco_cats', ['Aluguel', 'Salário', 'Mercado', 'Lazer', 'Investimentos']));
+            const [banks, setBanks] = useState(() => getSavedData('foco_banks', [{id: 1, name: 'Nubank', agency: '0001', account: '12345-6', balance: '0'}]));
+            const [cards, setCards] = useState(() => getSavedData('foco_cards', [{id: 1, name: 'Visa Infinite', limit: 10000, used: 500}]));
+            const [profile, setProfile] = useState(() => getSavedData('foco_profile', { name: 'Usuário Foco', photo: 'https://via.placeholder.com/100' }));
             
-            <!-- DASHBOARD -->
-            <section id="view-dashboard">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                    <div class="card border-l-4 border-green-500"><p class="text-xs text-gray-500 font-bold uppercase">Entradas</p><p id="dash-in" class="text-3xl font-black text-green-500">R$ 0,00</p></div>
-                    <div class="card border-l-4 border-red-500"><p class="text-xs text-gray-500 font-bold uppercase">Saídas</p><p id="dash-out" class="text-3xl font-black text-red-500">R$ 0,00</p></div>
-                    <div class="card border-l-4 border-orange-500"><p class="text-xs text-gray-500 font-bold uppercase">Saldo Atual</p><p id="dash-total" class="text-3xl font-black">R$ 0,00</p></div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="card"><h3 class="text-xs font-bold mb-6 uppercase text-gray-500 italic tracking-widest">Resumo Mensal</h3><div class="chart-container"><canvas id="barChart"></canvas></div></div>
-                    <div class="card"><h3 class="text-xs font-bold mb-6 uppercase text-gray-500 italic tracking-widest">Evolução do Saldo</h3><div class="chart-container"><canvas id="lineChart"></canvas></div></div>
-                </div>
-            </section>
+            const [editTrans, setEditTrans] = useState(null);
+            const [editCard, setEditCard] = useState(null);
+            const [editBank, setEditBank] = useState(null);
 
-            <!-- CADASTROS -->
-            <section id="view-cadastros" class="hidden animate-fadeIn">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="card">
-                        <h3 class="text-orange-500 font-black mb-6 uppercase italic tracking-tighter">Bancos e Contas</h3>
-                        <div class="space-y-4">
-                            <input type="text" id="bank-name" placeholder="Nome do Banco (Ex: Itaú)">
-                            <div class="flex gap-2">
-                                <input type="text" id="bank-ag" placeholder="Agência">
-                                <input type="text" id="bank-cc" placeholder="Conta">
+            const [market, setMarket] = useState({ usd: 5.15, eur: 5.58, btc: 410000, selic: '10.50%', ipca: '3.80%', minWage: '1.571,00' });
+            const [convAmount, setConvAmount] = useState(1);
+            const [convFrom, setConvFrom] = useState('USD');
+
+            const barChartRef = useRef(null);
+            const lineChartRef = useRef(null);
+
+            // --- PERSISTÊNCIA ---
+            useEffect(() => {
+                localStorage.setItem('foco_trans', JSON.stringify(transactions));
+                localStorage.setItem('foco_cats', JSON.stringify(categories));
+                localStorage.setItem('foco_banks', JSON.stringify(banks));
+                localStorage.setItem('foco_cards', JSON.stringify(cards));
+                localStorage.setItem('foco_profile', JSON.stringify(profile));
+                if(view === 'dashboard') renderCharts();
+            }, [transactions, view, cards, banks, profile]);
+
+            // --- API MOEDAS ---
+            useEffect(() => {
+                fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL')
+                    .then(r => r.json())
+                    .then(data => {
+                        setMarket(prev => ({
+                            ...prev,
+                            usd: parseFloat(data.USDBRL.bid),
+                            eur: parseFloat(data.EURBRL.bid),
+                            btc: parseFloat(data.BTCBRL.bid)
+                        }));
+                    }).catch(() => null);
+            }, []);
+
+            // --- GRÁFICOS ---
+            const renderCharts = () => {
+                setTimeout(() => {
+                    const ctxBar = document.getElementById('barChart');
+                    const ctxLine = document.getElementById('lineChart');
+                    if(!ctxBar || !ctxLine) return;
+                    
+                    if(barChartRef.current) barChartRef.current.destroy();
+                    if(lineChartRef.current) lineChartRef.current.destroy();
+
+                    const totals = transactions.reduce((acc, t) => {
+                        t.type === 'Receita' ? acc.in += parseFloat(t.value) : acc.out += parseFloat(t.value);
+                        return acc;
+                    }, { in: 0, out: 0 });
+
+                    barChartRef.current = new Chart(ctxBar, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Entradas', 'Saídas'],
+                            datasets: [{ data: [totals.in, totals.out], backgroundColor: ['#22c55e', '#ef4444'] }]
+                        },
+                        options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                    });
+
+                    lineChartRef.current = new Chart(ctxLine, {
+                        type: 'line',
+                        data: {
+                            labels: transactions.slice(-5).map(t => t.date),
+                            datasets: [{ label: 'Saldo', data: transactions.slice(-5).map(t => t.value), borderColor: '#FF6600', tension: 0.3 }]
+                        },
+                        options: { maintainAspectRatio: false }
+                    });
+                }, 100);
+            };
+
+            // --- EXPORTAÇÕES ---
+            const exportData = (type) => {
+                if(type === 'pdf') {
+                    const doc = new jspdf.jsPDF();
+                    doc.text("EXTRATO - FOCO CONSULTORIA", 14, 15);
+                    doc.autoTable({ head: [['Data', 'Desc', 'Tipo', 'Valor']], body: transactions.map(t => [t.date, t.desc, t.type, t.value]) });
+                    doc.save("Extrato.pdf");
+                } else if (type === 'xls') {
+                    const ws = XLSX.utils.json_to_sheet(transactions);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Dados");
+                    XLSX.writeFile(wb, "Gestao_Foco.xlsx");
+                } else {
+                    const text = JSON.stringify(transactions, null, 2);
+                    const blob = new Blob([text], {type: 'text/plain'});
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `Dados.${type}`;
+                    link.click();
+                }
+            };
+
+            const totals = transactions.reduce((acc, t) => {
+                const v = parseFloat(t.value || 0);
+                t.type === 'Receita' ? acc.in += v : acc.out += v;
+                return acc;
+            }, { in: 0, out: 0 });
+
+            return (
+                <div className="flex flex-col md:flex-row min-h-screen">
+                    {/* SIDEBAR */}
+                    <aside className={`sidebar w-72 flex flex-col no-print ${sidebarOpen ? 'block' : 'hidden md:block'}`}>
+                        <div className="p-8 text-center border-b border-gray-800">
+                            <img src={profile.photo} className="w-16 h-16 rounded-full border-2 border-orange-500 mx-auto mb-3 object-cover" />
+                            <h2 className="text-orange-500 font-black italic">FOCO CONSULTORIA</h2>
+                            <p className="text-[10px] text-gray-500 uppercase">{profile.name}</p>
+                        </div>
+                        <nav className="flex-1 mt-4">
+                            <SidebarBtn icon="📊" label="DASHBOARD" onClick={()=>setView('dashboard')} active={view==='dashboard'} />
+                            <SidebarBtn icon="📁" label="CADASTROS & BANCOS" onClick={()=>setView('cadastros')} active={view==='cadastros'} />
+                            <SidebarBtn icon="💸" label="LANÇAMENTOS & UP" onClick={()=>setView('lancamentos')} active={view==='lancamentos'} />
+                            <SidebarBtn icon="💳" label="CARTÕES DE CRÉDITO" onClick={()=>setView('cartoes')} active={view==='cartoes'} />
+                            <SidebarBtn icon="📈" label="FLUXO DE CAIXA" onClick={()=>setView('timeline')} active={view==='timeline'} />
+                            <SidebarBtn icon="💱" label="CONVERSOR" onClick={()=>setView('conversor')} active={view==='conversor'} />
+                            <SidebarBtn icon="🏛️" label="MERCADO 2026" onClick={()=>setView('mercado')} active={view==='mercado'} />
+                            <SidebarBtn icon="📑" label="RELATÓRIOS" onClick={()=>setView('relatorios')} active={view==='relatorios'} />
+                        </nav>
+                        <div className="p-4 border-t border-gray-800 text-[9px] text-gray-600 text-center uppercase">Google Sync Active</div>
+                    </aside>
+
+                    {/* MAIN */}
+                    <main className="flex-1 p-6 md:p-10 overflow-x-hidden">
+                        <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 no-print">
+                            <h1 className="text-xl font-black text-orange-500 uppercase italic tracking-widest">{view}</h1>
+                            <button onClick={()=>setSidebarOpen(!sidebarOpen)} className="md:hidden text-orange-500 font-bold">MENU</button>
+                        </header>
+
+                        {/* DASHBOARD */}
+                        {view === 'dashboard' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-bold uppercase italic tracking-tighter">
+                                    <div className="card border-l-4 border-green-500">
+                                        <p className="text-[10px] text-gray-500">RECEITAS</p>
+                                        <p className="text-2xl font-black text-green-500">R$ {totals.in.toLocaleString('pt-BR')}</p>
+                                    </div>
+                                    <div className="card border-l-4 border-red-500">
+                                        <p className="text-[10px] text-gray-500">DESPESAS</p>
+                                        <p className="text-2xl font-black text-red-500">R$ {totals.out.toLocaleString('pt-BR')}</p>
+                                    </div>
+                                    <div className="card border-l-4 border-orange-500">
+                                        <p className="text-[10px] text-gray-500">SALDO LÍQUIDO</p>
+                                        <p className="text-2xl font-black text-white">R$ {(totals.in - totals.out).toLocaleString('pt-BR')}</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="card"><h3 className="text-xs font-bold mb-4 uppercase">Balanço</h3><div className="chart-container"><canvas id="barChart"></canvas></div></div>
+                                    <div className="card"><h3 className="text-xs font-bold mb-4 uppercase">Evolução</h3><div className="chart-container"><canvas id="lineChart"></canvas></div></div>
+                                </div>
                             </div>
-                            <input type="number" id="bank-balance" placeholder="Saldo Inicial R$">
-                            <button class="btn-orange w-full" onclick="addBank()">SALVAR CONTA</button>
-                        </div>
-                        <div id="list-banks" class="mt-8 space-y-3"></div>
-                    </div>
-                    <div class="card">
-                        <h3 class="text-orange-500 font-black mb-6 uppercase italic tracking-tighter">Categorias</h3>
-                        <div class="flex gap-2 mb-6">
-                            <input type="text" id="cat-name" placeholder="Ex: Alimentação">
-                            <button class="btn-orange" onclick="addCat()">ADICIONAR</button>
-                        </div>
-                        <div id="list-cats" class="flex flex-wrap gap-2"></div>
-                    </div>
+                        )}
+
+                        {/* CADASTROS (ATUALIZADO: SALDO INICIAL NO BANCO) */}
+                        {view === 'cadastros' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="card">
+                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic">Bancos</h3>
+                                    <form className="space-y-4" onSubmit={(e)=>{
+                                        e.preventDefault();
+                                        const fd = new FormData(e.target);
+                                        const b = {
+                                            id: editBank?editBank.id:Date.now(), 
+                                            name: fd.get('n'), 
+                                            agency: fd.get('a'), 
+                                            account: fd.get('c'),
+                                            balance: fd.get('s') // Novo campo de saldo
+                                        };
+                                        if(editBank) setBanks(banks.map(x=>x.id===editBank.id?b:x)); else setBanks([...banks, b]);
+                                        setEditBank(null); e.target.reset();
+                                    }}>
+                                        <input name="n" defaultValue={editBank?.name} placeholder="Nome do Banco" required />
+                                        <div className="flex gap-2">
+                                            <input name="a" defaultValue={editBank?.agency} placeholder="Agência" required />
+                                            <input name="c" defaultValue={editBank?.account} placeholder="Conta" required />
+                                        </div>
+                                        <input name="s" defaultValue={editBank?.balance} type="number" step="0.01" placeholder="Saldo Inicial R$" required />
+                                        <button className="btn-orange w-full">SALVAR BANCO</button>
+                                    </form>
+                                    <div className="mt-4 space-y-2">
+                                        {banks.map(b => (
+                                            <div key={b.id} className="bg-gray-800 p-2 rounded text-[10px] flex justify-between border-l-2 border-orange-500">
+                                                <span>{b.name} (Ag: {b.agency} Cc: {b.account}) | Saldo: R$ {parseFloat(b.balance || 0).toLocaleString('pt-BR')}</span>
+                                                <div className="flex gap-2"><button onClick={()=>setEditBank(b)}>✏️</button><button onClick={()=>setBanks(banks.filter(x=>x.id!==b.id))}>🗑️</button></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="card">
+                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic">Categorias</h3>
+                                    <div className="flex gap-2 mb-4"><input id="catIn" placeholder="Nova..." /><button className="btn-orange" onClick={()=>setCategories([...categories, document.getElementById('catIn').value])}>+</button></div>
+                                    <div className="flex flex-wrap gap-2">{categories.map(c => <span key={c} className="bg-gray-800 px-3 py-1 rounded text-[10px]">{c}</span>)}</div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* LANÇAMENTOS (ATUALIZADO: SELEÇÃO DE CONTA REESTABELECIDA) */}
+                        {view === 'lancamentos' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="card border-orange-500/50">
+                                        <h3 className="text-orange-500 font-bold mb-4 italic uppercase text-xs">Adicionar Lançamento</h3>
+                                        <form className="space-y-3" onSubmit={(e)=>{
+                                            e.preventDefault();
+                                            const fd = new FormData(e.target);
+                                            const t = {
+                                                id: editTrans?editTrans.id:Date.now(), 
+                                                desc: fd.get('d'), 
+                                                value: fd.get('v'), 
+                                                type: fd.get('t'), 
+                                                date: fd.get('dt'),
+                                                bank: fd.get('b') // Captura a conta selecionada
+                                            };
+                                            if(editTrans) setTransactions(transactions.map(x=>x.id===editTrans.id?t:x)); else setTransactions([t, ...transactions]);
+                                            setEditTrans(null); e.target.reset();
+                                        }}>
+                                            <input name="d" defaultValue={editTrans?.desc} placeholder="Descrição" required />
+                                            <div className="flex gap-2">
+                                                <input name="v" defaultValue={editTrans?.value} type="number" step="0.01" className="w-1/2" required />
+                                                <input name="dt" defaultValue={editTrans?.date} type="date" className="w-1/2" required />
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <select name="t" className="w-1/2" defaultValue={editTrans?.type}>
+                                                    <option>Despesa</option>
+                                                    <option>Receita</option>
+                                                </select>
+                                                <select name="b" className="w-1/2" defaultValue={editTrans?.bank} required>
+                                                    <option value="">Selecionar Conta</option>
+                                                    {banks.map(bank => <option key={bank.id} value={bank.name}>{bank.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <button className="btn-orange w-full uppercase">Salvar Lançamento</button>
+                                        </form>
+                                    </div>
+                                    <div className="card bg-gray-900 border-dashed border-2 border-gray-700 text-center uppercase">
+                                        <h3 className="text-orange-500 font-bold mb-4 italic uppercase text-xs">Uploads</h3>
+                                        <div className="grid gap-4">
+                                            <label className="dropzone">📥 EXTRATO (OFX/CSV) <input type="file" className="hidden" onChange={()=>alert('Extrato Recebido!')} /></label>
+                                            <label className="dropzone">📄 NOTA FISCAL (XML) <input type="file" className="hidden" onChange={()=>alert('XML Recebido!')} /></label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="card overflow-x-auto font-bold text-xs">
+                                    <table className="w-full text-left">
+                                        <thead className="text-orange-500 border-b border-gray-800 uppercase">
+                                            <tr>
+                                                <th className="p-3">Data</th>
+                                                <th className="p-3">Descrição</th>
+                                                <th className="p-3">Conta</th>
+                                                <th className="p-3 text-right">Valor</th>
+                                                <th className="p-3 text-center">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transactions.map(t => (
+                                                <tr key={t.id} className="border-b border-gray-900 uppercase">
+                                                    <td className="p-3">{t.date}</td>
+                                                    <td className="p-3">{t.desc}</td>
+                                                    <td className="p-3 italic text-gray-500">{t.bank}</td>
+                                                    <td className={`p-3 text-right font-black ${t.type==='Receita'?'text-green-500':'text-red-500'}`}>R$ {parseFloat(t.value).toLocaleString('pt-BR')}</td>
+                                                    <td className="p-3 text-center flex justify-center gap-2">
+                                                        <button onClick={()=>setEditTrans(t)}>✏️</button>
+                                                        <button onClick={()=>setTransactions(transactions.filter(x=>x.id!==t.id))}>🗑️</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* CARTÕES (CRUD + PDF) */}
+                        {view === 'cartoes' && (
+                            <div className="space-y-6 font-bold">
+                                <div className="card">
+                                    <h3 className="text-orange-500 font-bold mb-4 italic uppercase">Novo Cartão</h3>
+                                    <form className="grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={(e)=>{
+                                        e.preventDefault();
+                                        const fd = new FormData(e.target);
+                                        const c = {id: editCard?editCard.id:Date.now(), name: fd.get('n'), limit: fd.get('l'), used: fd.get('u')||0};
+                                        if(editCard) setCards(cards.map(x=>x.id===editCard.id?c:x)); else setCards([...cards, c]);
+                                        setEditCard(null); e.target.reset();
+                                    }}>
+                                        <input name="n" defaultValue={editCard?.name} placeholder="Nome do Cartão" required />
+                                        <input name="l" defaultValue={editCard?.limit} type="number" placeholder="Limite" required />
+                                        <button className="btn-orange">SALVAR</button>
+                                    </form>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {cards.map(c => (
+                                        <div key={c.id} className="card bg-gray-900 border-l-4 border-orange-500">
+                                            <div className="flex justify-between mb-4 uppercase italic">
+                                                <h4 className="text-sm">{c.name}</h4>
+                                                <div className="flex gap-2"><button onClick={()=>setEditCard(c)}>✏️</button><button onClick={()=>setCards(cards.filter(x=>x.id!==c.id))}>🗑️</button></div>
+                                            </div>
+                                            <div className="w-full bg-gray-800 h-2 rounded-full mb-2 overflow-hidden"><div className="bg-orange-500 h-full" style={{width: `${(c.used/c.limit)*100}%`}}></div></div>
+                                            <p className="text-[10px] text-gray-500 uppercase mb-4">Limite: R$ {c.limit} | Usado: R$ {c.used}</p>
+                                            <label className="dropzone text-orange-500">📤 FATURA PDF <input type="file" className="hidden" accept=".pdf" onChange={()=>alert('PDF Recebido!')} /></label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TIMELINE */}
+                        {view === 'timeline' && (
+                            <div className="card">
+                                <h3 className="text-orange-500 font-bold uppercase italic mb-8">Fluxo de Caixa</h3>
+                                <div className="relative border-l-2 border-orange-500 ml-4 space-y-8 uppercase text-xs">
+                                    {transactions.map(t => (
+                                        <div key={t.id} className="relative pl-8">
+                                            <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-black border-2 border-orange-500"></div>
+                                            <div className="bg-gray-900 p-4 rounded-lg flex justify-between border border-gray-800">
+                                                <div><p className="text-[10px] text-gray-500">{t.date}</p><p className="font-bold uppercase">{t.desc}</p></div>
+                                                <p className={`font-black ${t.type==='Receita'?'text-green-500':'text-red-500'}`}>R$ {parseFloat(t.value).toLocaleString('pt-BR')}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* CONVERSOR */}
+                        {view === 'conversor' && (
+                            <div className="card max-w-md mx-auto border-orange-500 text-center font-bold">
+                                <h3 className="text-xl font-black italic mb-6 text-orange-500 uppercase">Conversor</h3>
+                                <div className="space-y-4">
+                                    <input type="number" value={convAmount} onChange={(e)=>setConvAmount(e.target.value)} className="text-3xl font-black text-center" />
+                                    <select value={convFrom} onChange={(e)=>setConvFrom(e.target.value)} className="text-center">
+                                        <option value="USD">Dólar (USD)</option><option value="EUR">Euro (EUR)</option><option value="BTC">Bitcoin (BTC)</option>
+                                    </select>
+                                    <div className="p-8 bg-black rounded border border-gray-700">
+                                        <p className="text-[10px] text-gray-500 uppercase mb-2 italic tracking-widest">Total em Reais (BRL)</p>
+                                        <p className="text-4xl font-black text-orange-500">R$ {(convAmount * market[convFrom.toLowerCase()]).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MERCADO 2026 */}
+                        {view === 'mercado' && (
+                            <div className="space-y-6 font-bold">
+                                <h2 className="text-2xl font-black italic text-orange-500 uppercase">Indicadores 2026</h2>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center uppercase text-[10px]">
+                                    <div className="card"><p className="text-gray-500">Dólar</p><p className="text-xl">R$ {market.usd.toFixed(2)}</p></div>
+                                    <div className="card"><p className="text-gray-500">Mínimo</p><p className="text-xl text-orange-500">R$ {market.minWage}</p></div>
+                                    <div className="card"><p className="text-gray-500">SELIC</p><p className="text-xl">10.50%</p></div>
+                                    <div className="card"><p className="text-gray-500">Bitcoin</p><p className="text-xl text-green-500">R$ {market.btc.toLocaleString()}</p></div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* RELATÓRIOS */}
+                        {view === 'relatorios' && (
+                            <div className="space-y-6 font-bold uppercase italic">
+                                <div className="card border-orange-500 bg-orange-950/20">
+                                    <h3 className="text-xl font-black mb-6 text-orange-500">Gerar Relatórios</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <button onClick={()=>exportData('pdf')} className="bg-red-800 p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-red-700"><span>📄</span> PDF</button>
+                                        <button onClick={()=>exportData('xls')} className="bg-green-800 p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-green-700"><span>📊</span> XLS</button>
+                                        <button onClick={()=>exportData('txt')} className="bg-blue-800 p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-blue-700"><span>TXT</span> TXT</button>
+                                        <button onClick={()=>exportData('xml')} className="bg-gray-800 p-4 rounded-lg flex flex-col items-center gap-2 hover:bg-gray-700"><span>XML</span> XML</button>
+                                    </div>
+                                    <div className="mt-8"><button onClick={()=>window.print()} className="w-full btn-orange text-lg">🖨️ IMPRIMIR EXTRATO COMPLETO</button></div>
+                                </div>
+                                <div className="card text-[10px] text-gray-500">
+                                    {(totals.in - totals.out) > 0 ? "✅ Cenário Positivo. Recomendação: Aportes em Tesouro Selic." : "⚠️ Fluxo Negativo. Recomendação: Corte despesas não essenciais."}
+                                </div>
+                            </div>
+                        )}
+                    </main>
                 </div>
-            </section>
-
-            <!-- LANÇAMENTOS -->
-            <section id="view-lancamentos" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                    <div class="card md:col-span-2 border-orange-500/20">
-                        <h3 class="text-orange-500 font-black mb-6 uppercase italic tracking-tighter">Novo Lançamento Manual</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="tx-desc" placeholder="Descrição">
-                            <input type="number" id="tx-val" placeholder="Valor R$">
-                            <input type="date" id="tx-date">
-                            <select id="tx-type"><option value="Receita">Receita (+)</option><option value="Despesa">Despesa (-)</option></select>
-                            <select id="tx-bank" class="md:col-span-2"><option value="">Selecionar Conta/Banco...</option></select>
-                            <button class="btn-orange md:col-span-2 uppercase font-black" onclick="addTx()">Salvar Movimentação</button>
-                        </div>
-                    </div>
-                    <div class="card bg-gray-950 border-dashed border-2 border-gray-800 flex flex-col justify-center items-center text-center">
-                        <h3 class="text-orange-500 font-black mb-4 uppercase text-xs italic tracking-tighter underline">Importação de Arquivos</h3>
-                        <label class="w-full p-4 border border-gray-700 rounded mb-2 cursor-pointer hover:bg-gray-900 transition text-[10px] font-bold">📥 EXTRATO OFX/CSV <input type="file" class="hidden" onchange="alert('Importado!')"></label>
-                        <label class="w-full p-4 border border-gray-700 rounded cursor-pointer hover:bg-gray-900 transition text-[10px] font-bold">📄 NOTA FISCAL XML <input type="file" class="hidden" onchange="alert('XML Lido!')"></label>
-                    </div>
-                </div>
-                <div class="card overflow-x-auto">
-                    <table class="w-full text-left text-xs uppercase font-bold">
-                        <thead><tr class="text-orange-500 border-b border-gray-800">
-                            <th class="p-4">Data</th><th class="p-4">Descrição</th><th class="p-4">Conta</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ações</th>
-                        </tr></thead>
-                        <tbody id="table-tx"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- CARTÕES -->
-            <section id="view-cartoes" class="hidden">
-                <div class="card mb-8">
-                    <h3 class="text-orange-500 font-black mb-6 uppercase italic">Gerenciar Cartões de Crédito</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="text" id="card-name" placeholder="Nome do Cartão">
-                        <input type="number" id="card-limit" placeholder="Limite Total R$">
-                        <button class="btn-orange" onclick="addCard()">CADASTRAR</button>
-                    </div>
-                </div>
-                <div id="display-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-            </section>
-
-            <!-- TIMELINE -->
-            <section id="view-timeline" class="hidden">
-                <div class="card">
-                    <h3 class="text-orange-500 font-black mb-10 italic uppercase tracking-widest underline">Fluxo de Caixa (Linha do Tempo)</h3>
-                    <div id="list-timeline" class="relative border-l-2 border-orange-500 ml-4 space-y-10"></div>
-                </div>
-            </section>
-
-            <!-- CONVERSOR -->
-            <section id="view-conversor" class="hidden">
-                <div class="card max-w-lg mx-auto border-orange-500 text-center py-12">
-                    <h3 class="text-2xl font-black mb-8 text-orange-500 uppercase italic">Conversor de Câmbio</h3>
-                    <div class="space-y-6">
-                        <input type="number" id="conv-val" value="1" class="text-4xl font-black text-center bg-transparent border-none">
-                        <select id="conv-from" class="text-xl font-bold text-center">
-                            <option value="USD">Dólar Americano (USD)</option>
-                            <option value="EUR">Euro (EUR)</option>
-                            <option value="BTC">Bitcoin (BTC)</option>
-                        </select>
-                        <div class="p-10 bg-black border border-gray-800 rounded-2xl shadow-2xl">
-                            <p class="text-xs text-gray-500 mb-2 font-bold uppercase italic">Valor em Reais (BRL)</p>
-                            <p id="conv-result" class="text-5xl font-black text-orange-500">R$ 0,00</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- MERCADO -->
-            <section id="view-mercado" class="hidden">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center font-black uppercase text-xs">
-                    <div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-2">Dólar Comercial</p><p id="m-usd" class="text-2xl">R$ 5,10</p></div>
-                    <div class="card border-t-4 border-white"><p class="text-gray-500 mb-2">Salário Mínimo</p><p class="text-2xl">R$ 1.571,00</p></div>
-                    <div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-2">Taxa SELIC</p><p class="text-2xl">10,50%</p></div>
-                    <div class="card border-t-4 border-green-500"><p class="text-gray-500 mb-2">Bitcoin</p><p id="m-btc" class="text-2xl text-green-500">R$ 400k</p></div>
-                </div>
-                <div class="mt-10 card bg-orange-950/10 border-orange-500 italic text-sm text-gray-400">
-                    Fonte dos dados: APIs Oficiais Jan/2026 - Mercado Financeiro e Projeções Governamentais.
-                </div>
-            </section>
-
-            <!-- RELATÓRIOS -->
-            <section id="view-relatorios" class="hidden font-black">
-                <div class="card border-orange-500 bg-orange-950/20 text-center py-12">
-                    <h3 class="text-3xl mb-12 text-orange-500 uppercase italic tracking-tighter">Central de Relatórios e Exportação</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12 uppercase italic">
-                        <button onclick="exportData('pdf')" class="bg-red-800 p-8 rounded-2xl hover:bg-red-700 flex flex-col items-center gap-3"><span>📄</span> PDF</button>
-                        <button onclick="exportData('xls')" class="bg-green-800 p-8 rounded-2xl hover:bg-green-700 flex flex-col items-center gap-3"><span>📊</span> EXCEL</button>
-                        <button onclick="exportData('txt')" class="bg-blue-800 p-8 rounded-2xl hover:bg-blue-700 flex flex-col items-center gap-3"><span>TXT</span> TEXTO</button>
-                        <button onclick="exportData('xml')" class="bg-gray-800 p-8 rounded-2xl hover:bg-gray-600 flex flex-col items-center gap-3"><span>XML</span> XML</button>
-                    </div>
-                    <button onclick="window.print()" class="w-full btn-orange py-6 text-2xl tracking-widest uppercase italic">🖨️ IMPRIMIR EXTRATO COMPLETO</button>
-                </div>
-            </section>
-
-        </div>
-    </main>
-
-    <script>
-        // --- ESTADO INICIAL ---
-        let data = {
-            transactions: JSON.parse(localStorage.getItem('foco_tx')) || [],
-            banks: JSON.parse(localStorage.getItem('foco_bnk')) || [],
-            cats: JSON.parse(localStorage.getItem('foco_cat')) || ['Moradia', 'Alimentação', 'Salário'],
-            cards: JSON.parse(localStorage.getItem('foco_crd')) || [],
-            profile: JSON.parse(localStorage.getItem('foco_prf')) || { name: 'Usuário Foco', photo: 'https://via.placeholder.com/100' },
-            market: { usd: 5.15, eur: 5.58, btc: 410000 }
-        };
-
-        function save() {
-            localStorage.setItem('foco_tx', JSON.stringify(data.transactions));
-            localStorage.setItem('foco_bnk', JSON.stringify(data.banks));
-            localStorage.setItem('foco_cat', JSON.stringify(data.cats));
-            localStorage.setItem('foco_crd', JSON.stringify(data.cards));
-            localStorage.setItem('foco_prf', JSON.stringify(data.profile));
-            render();
+            );
         }
 
-        // --- NAVEGAÇÃO ---
-        function nav(id) {
-            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-            
-            document.getElementById('view-' + id).classList.remove('hidden');
-            event.currentTarget.classList.add('active');
-            document.getElementById('view-title').innerText = id.toUpperCase();
-            
-            if(id === 'dashboard') initCharts();
-            if(window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('mobile-open');
-        }
+        const SidebarBtn = ({icon, label, onClick, active}) => (
+            <button onClick={onClick} className={`w-full flex items-center gap-4 px-8 py-4 text-[11px] font-bold transition-all uppercase tracking-tighter ${active ? 'active-menu' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
+                <span className="text-lg">{icon}</span> {label}
+            </button>
+        );
 
-        function toggleMobileMenu() {
-            document.getElementById('sidebar').classList.toggle('mobile-open');
-        }
-
-        // --- CRUD AÇÕES ---
-        function addBank() {
-            const n = document.getElementById('bank-name').value;
-            const a = document.getElementById('bank-ag').value;
-            const c = document.getElementById('bank-cc').value;
-            const b = document.getElementById('bank-balance').value || 0;
-            if(!n) return alert('Nome do banco é obrigatório!');
-            data.banks.push({ id: Date.now(), name: n, ag: a, cc: c, balance: b });
-            save();
-            document.getElementById('bank-name').value = '';
-        }
-
-        function deleteBank(id) {
-            data.banks = data.banks.filter(b => b.id !== id);
-            save();
-        }
-
-        function addCat() {
-            const n = document.getElementById('cat-name').value;
-            if(!n) return;
-            data.cats.push(n);
-            save();
-            document.getElementById('cat-name').value = '';
-        }
-
-        function addTx() {
-            const d = document.getElementById('tx-desc').value;
-            const v = document.getElementById('tx-val').value;
-            const dt = document.getElementById('tx-date').value;
-            const t = document.getElementById('tx-type').value;
-            const b = document.getElementById('tx-bank').value;
-            if(!d || !v || !dt) return alert('Preencha os campos obrigatórios!');
-            data.transactions.push({ id: Date.now(), desc: d, val: v, date: dt, type: t, bank: b });
-            save();
-            document.getElementById('tx-desc').value = ''; document.getElementById('tx-val').value = '';
-        }
-
-        function deleteTx(id) {
-            data.transactions = data.transactions.filter(t => t.id !== id);
-            save();
-        }
-
-        function addCard() {
-            const n = document.getElementById('card-name').value;
-            const l = document.getElementById('card-limit').value;
-            if(!n || !l) return;
-            data.cards.push({ id: Date.now(), name: n, limit: l, used: 0 });
-            save();
-            document.getElementById('card-name').value = ''; document.getElementById('card-limit').value = '';
-        }
-
-        function deleteCard(id) {
-            data.cards = data.cards.filter(c => c.id !== id);
-            save();
-        }
-
-        // --- RENDERIZAÇÃO ---
-        function render() {
-            // Dashboard Totais
-            const tin = data.transactions.filter(t => t.type === 'Receita').reduce((a,b) => a + parseFloat(b.val), 0);
-            const tout = data.transactions.filter(t => t.type === 'Despesa').reduce((a,b) => a + parseFloat(b.val), 0);
-            document.getElementById('dash-in').innerText = 'R$ ' + tin.toLocaleString('pt-BR');
-            document.getElementById('dash-out').innerText = 'R$ ' + tout.toLocaleString('pt-BR');
-            document.getElementById('dash-total').innerText = 'R$ ' + (tin - tout).toLocaleString('pt-BR');
-
-            // Perfil
-            document.getElementById('user-photo').src = data.profile.photo;
-
-            // Lista Bancos
-            const bList = document.getElementById('list-banks');
-            bList.innerHTML = '';
-            data.banks.forEach(b => {
-                bList.innerHTML += `<div class="bg-gray-800 p-4 rounded-xl flex justify-between border-l-4 border-orange-500">
-                    <span class="text-[11px] font-bold uppercase">${b.name} (AG:${b.ag} CC:${b.cc}) | SALDO: R$ ${parseFloat(b.balance).toLocaleString('pt-BR')}</span>
-                    <button onclick="deleteBank(${b.id})">🗑️</button>
-                </div>`;
-            });
-
-            // Lista Categorias
-            const cList = document.getElementById('list-cats');
-            cList.innerHTML = '';
-            data.cats.forEach(c => {
-                cList.innerHTML += `<span class="bg-gray-800 px-4 py-2 rounded-full text-[10px] border border-gray-700 font-bold uppercase">${c}</span>`;
-            });
-
-            // Select Bancos nos Lançamentos
-            const bSelect = document.getElementById('tx-bank');
-            bSelect.innerHTML = '<option value="">Selecionar Conta/Banco...</option>';
-            data.banks.forEach(b => {
-                bSelect.innerHTML += `<option value="${b.name}">${b.name}</option>`;
-            });
-
-            // Tabela Lançamentos
-            const tTable = document.getElementById('table-tx');
-            tTable.innerHTML = '';
-            data.transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
-                tTable.innerHTML += `<tr class="border-b border-gray-900 hover:bg-gray-900 transition">
-                    <td class="p-4">${t.date}</td><td class="p-4">${t.desc}</td><td class="p-4 italic text-gray-500">${t.bank}</td>
-                    <td class="p-4 text-right font-black ${t.type==='Receita'?'text-green-500':'text-red-500'}">R$ ${parseFloat(t.val).toLocaleString('pt-BR')}</td>
-                    <td class="p-4 text-center"><button onclick="deleteTx(${t.id})">🗑️</button></td>
-                </tr>`;
-            });
-
-            // Cards Crédito
-            const crdList = document.getElementById('display-cards');
-            crdList.innerHTML = '';
-            data.cards.forEach(c => {
-                crdList.innerHTML += `<div class="card border-l-4 border-orange-500 uppercase font-bold">
-                    <div class="flex justify-between mb-4"><span>${c.name}</span> <button onclick="deleteCard(${c.id})">🗑️</button></div>
-                    <div class="w-full bg-gray-800 h-2 rounded-full mb-3 overflow-hidden"><div class="bg-orange-500 h-full" style="width:20%"></div></div>
-                    <div class="flex justify-between text-[9px] text-gray-500 mb-6"><span>LIMITE: R$ ${c.limit}</span><span>USO: R$ 0,00</span></div>
-                    <label class="dropzone text-orange-500 tracking-tighter cursor-pointer text-[10px] block">📤 UPLOAD FATURA PDF <input type="file" class="hidden"></label>
-                </div>`;
-            });
-
-            // Timeline
-            const tlList = document.getElementById('list-timeline');
-            tlList.innerHTML = '';
-            data.transactions.forEach(t => {
-                tlList.innerHTML += `<div class="relative pl-10">
-                    <div class="absolute -left-[11px] top-0 w-5 h-5 rounded-full bg-black border-2 border-orange-500 shadow-[0_0_10px_rgba(255,102,0,0.5)]"></div>
-                    <div class="bg-gray-900 p-6 rounded-2xl flex justify-between border border-gray-800 font-bold uppercase text-xs tracking-tighter">
-                        <div><p class="text-[9px] text-gray-500 mb-1">${t.date}</p><p>${t.desc}</p></div>
-                        <p class="${t.type==='Receita'?'text-green-500':'text-red-500'}">R$ ${parseFloat(t.val).toLocaleString('pt-BR')}</p>
-                    </div>
-                </div>`;
-            });
-
-            updateConversor();
-        }
-
-        // --- GRÁFICOS ---
-        let bChart, lChart;
-        function initCharts() {
-            setTimeout(() => {
-                const ctxB = document.getElementById('barChart');
-                const ctxL = document.getElementById('lineChart');
-                if(!ctxB) return;
-                if(bChart) bChart.destroy(); if(lChart) lChart.destroy();
-
-                const tin = data.transactions.filter(t => t.type === 'Receita').reduce((a,b) => a + parseFloat(b.val), 0);
-                const tout = data.transactions.filter(t => t.type === 'Despesa').reduce((a,b) => a + parseFloat(b.val), 0);
-
-                bChart = new Chart(ctxB, {
-                    type: 'bar',
-                    data: { labels: ['Receitas', 'Despesas'], datasets: [{ data: [tin, tout], backgroundColor: ['#22c55e', '#ef4444'], borderRadius: 8 }] },
-                    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' } }, x: { grid: { display: false } } } }
-                });
-
-                lChart = new Chart(ctxL, {
-                    type: 'line',
-                    data: { labels: data.transactions.slice(-5).map(t => t.date), datasets: [{ data: data.transactions.slice(-5).map(t => t.val), borderColor: '#FF6600', tension: 0.4, fill: true, backgroundColor: 'rgba(255,102,0,0.1)' }] },
-                    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#333' } }, x: { grid: { display: false } } } }
-                });
-            }, 100);
-        }
-
-        // --- CONVERSOR & MERCADO ---
-        function updateConversor() {
-            const v = document.getElementById('conv-val').value;
-            const f = document.getElementById('conv-from').value;
-            const res = v * data.market[f.toLowerCase()];
-            document.getElementById('conv-result').innerText = 'R$ ' + res.toLocaleString('pt-BR', {minimumFractionDigits: 2});
-        }
-        document.getElementById('conv-val').addEventListener('input', updateConversor);
-        document.getElementById('conv-from').addEventListener('change', updateConversor);
-
-        // --- FOTO PERFIL ---
-        document.getElementById('upload-photo').addEventListener('change', function(e)
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
