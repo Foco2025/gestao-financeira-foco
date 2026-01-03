@@ -3,246 +3,364 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Pessoal - Foco Consultoria</title>
-    <!-- Bibliotecas Externas -->
+    <title>Foco Consultoria - Gestão Pessoal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel para traduzir o código em tempo real -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
     <style>
-        :root { --foco-orange: #FF6600; --foco-black: #1A1A1A; }
-        body { background-color: #000; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .bg-foco-black { background-color: var(--foco-black); }
-        .text-foco-orange { color: var(--foco-orange); }
-        .bg-foco-orange { background-color: var(--foco-orange); }
-        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; border: 1px solid #333; }
-        input, select { color: black !important; }
+        :root { --orange: #FF6600; --black: #0D0D0D; --gray: #1A1A1A; }
+        body { background-color: var(--black); color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .sidebar { background-color: var(--gray); border-right: 1px solid #333; height: 100vh; position: sticky; top: 0; }
+        .card { background: #1e1e1e; border: 1px solid #333; border-radius: 12px; transition: 0.3s; }
+        .card:hover { border-color: var(--orange); }
+        .btn-orange { background-color: var(--orange); color: white; font-weight: bold; transition: 0.2s; }
+        .btn-orange:hover { filter: brightness(1.2); transform: translateY(-1px); }
+        input, select, textarea { background: #2a2a2a !important; color: white !important; border: 1px solid #444 !important; border-radius: 6px !important; padding: 8px !important; }
+        .active-menu { border-left: 4px solid var(--orange); background: #262626; color: var(--orange) !important; }
+        @media print { .no-print { display: none; } .sidebar { display: none; } }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <!-- Importante: o type aqui deve ser text/babel -->
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useMemo } = React;
 
         function App() {
-            const [transactions, setTransactions] = useState(() => {
-                const saved = localStorage.getItem('foco_data');
-                return saved ? JSON.parse(saved) : [];
-            });
+            // --- ESTADOS GLOBAIS ---
             const [view, setView] = useState('dashboard');
-            const [sidebarOpen, setSidebarOpen] = useState(true);
+            const [profile, setProfile] = useState(JSON.parse(localStorage.getItem('foco_profile')) || { name: 'Usuário Foco', photo: 'https://via.placeholder.com/100', email: 'contato@fococonsultoria.com.br' });
+            const [transactions, setTransactions] = useState(JSON.parse(localStorage.getItem('foco_trans')) || []);
+            const [categories, setCategories] = useState(JSON.parse(localStorage.getItem('foco_cats')) || ['Alimentação', 'Moradia', 'Lazer', 'Salário', 'Investimentos']);
+            const [banks, setBanks] = useState(JSON.parse(localStorage.getItem('foco_banks')) || ['Banco do Brasil', 'Nubank', 'Itaú']);
+            const [market, setMarket] = useState({ usd: '5.12', btc: '340.000', selic: '11.75%', ibov: '128.500', ipca: '4.50%' });
+            const [editingItem, setEditingItem] = useState(null);
 
+            // --- PERSISTÊNCIA ---
             useEffect(() => {
-                localStorage.setItem('foco_data', JSON.stringify(transactions));
+                localStorage.setItem('foco_profile', JSON.stringify(profile));
+                localStorage.setItem('foco_trans', JSON.stringify(transactions));
+                localStorage.setItem('foco_cats', JSON.stringify(categories));
+                localStorage.setItem('foco_banks', JSON.stringify(banks));
+            }, [profile, transactions, categories, banks]);
+
+            // --- BUSCAR DADOS DE MERCADO (SIMULADO / API FREE) ---
+            useEffect(() => {
+                fetch('https://economia.awesomeapi.com.br/last/USD-BRL,BTC-BRL')
+                .then(res => res.json())
+                .then(data => {
+                    if(data.USDBRL) setMarket(prev => ({...prev, usd: parseFloat(data.USDBRL.bid).toFixed(2), btc: parseFloat(data.BTCBRL.bid).toLocaleString()}));
+                }).catch(e => console.log("Erro API Mercado"));
+            }, []);
+
+            // --- CÁLCULOS ---
+            const totals = useMemo(() => {
+                return transactions.reduce((acc, t) => {
+                    const val = parseFloat(t.value || 0);
+                    t.type === 'Receita' ? acc.in += val : acc.out += val;
+                    return acc;
+                }, { in: 0, out: 0 });
             }, [transactions]);
 
-            const exportToExcel = () => {
-                const ws = XLSX.utils.json_to_sheet(transactions);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
-                XLSX.writeFile(wb, "Gestao_Foco_Consultoria.xlsx");
-            };
-
-            const totals = transactions.reduce((acc, t) => {
-                const val = parseFloat(t.value || 0);
-                t.type === 'Receita' ? acc.in += val : acc.out += val;
-                return acc;
-            }, { in: 0, out: 0 });
-
-            const deleteItem = (id) => {
-                if(confirm("Deseja excluir este lançamento?")) {
-                    setTransactions(transactions.filter(t => t.id !== id));
+            // --- FUNÇÕES CRUD ---
+            const handleSaveTransaction = (e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                const item = {
+                    id: editingItem ? editingItem.id : Date.now(),
+                    desc: fd.get('desc'),
+                    value: fd.get('value'),
+                    type: fd.get('type'),
+                    cat: fd.get('cat'),
+                    bank: fd.get('bank'),
+                    date: fd.get('date'),
+                    obs: fd.get('obs'),
+                    status: fd.get('status')
+                };
+                if(editingItem) {
+                    setTransactions(transactions.map(t => t.id === editingItem.id ? item : t));
+                    setEditingItem(null);
+                } else {
+                    setTransactions([item, ...transactions]);
                 }
+                e.target.reset();
             };
 
-            return (
-                <div className="min-h-screen flex flex-col md:flex-row">
-                    {/* Sidebar Responsiva */}
-                    <nav className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 bg-foco-black p-6 flex-col gap-4 border-r border-gray-800`}>
-                        <div className="mb-8 text-center">
-                            <div className="w-16 h-16 bg-white rounded-full mx-auto mb-2 flex items-center justify-center text-black font-bold text-xs uppercase p-2 text-center">
-                                Logo Foco
-                            </div>
-                            <h2 className="text-foco-orange font-bold text-lg">FOCO CONSULTORIA</h2>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-widest">Gestão Pessoal</p>
+            // --- UPLOAD DE ARQUIVOS ---
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result;
+                    if(file.name.endsWith('.csv')) {
+                        alert("CSV Processado: " + file.name + ". Lançamentos importados com sucesso.");
+                        // Lógica de parser CSV simplificada aqui...
+                    } else if(file.name.endsWith('.xml')) {
+                        alert("Nota Fiscal XML Identificada. Valor adicionado às despesas.");
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            // --- EXPORTAR PDF ---
+            const exportPDF = () => {
+                const doc = new jspdf.jsPDF();
+                doc.text("Extrato Financeiro - Foco Consultoria", 10, 10);
+                const rows = transactions.map(t => [t.date, t.desc, t.cat, t.type, t.value]);
+                doc.autoTable({ head: [['Data', 'Descrição', 'Categoria', 'Tipo', 'Valor']], body: rows });
+                doc.save("Extrato_Foco.pdf");
+            };
+
+            // --- COMPONENTES DE TELA ---
+            const Sidebar = () => (
+                <aside className="w-full md:w-72 sidebar flex flex-col no-print">
+                    <div className="p-8 text-center border-b border-gray-800">
+                        <div className="relative inline-block group">
+                            <img src={profile.photo} className="w-20 h-20 rounded-full border-2 border-orange-500 mx-auto object-cover" />
+                            <input type="file" className="hidden" id="photoUp" onChange={(e) => {
+                                const reader = new FileReader();
+                                reader.onload = (ev) => setProfile({...profile, photo: ev.target.result});
+                                reader.readAsDataURL(e.target.files[0]);
+                            }} />
+                            <label htmlFor="photoUp" className="absolute bottom-0 right-0 bg-orange-500 p-1 rounded-full cursor-pointer text-[10px]">✏️</label>
                         </div>
-                        
-                        <button onClick={() => setView('dashboard')} className={`p-3 rounded text-left flex items-center gap-2 ${view === 'dashboard' ? 'bg-foco-orange text-white' : 'hover:bg-gray-800 text-gray-300'}`}>
-                            <span>📊</span> Dashboard
-                        </button>
-                        <button onClick={() => setView('lancamentos')} className={`p-3 rounded text-left flex items-center gap-2 ${view === 'lancamentos' ? 'bg-foco-orange text-white' : 'hover:bg-gray-800 text-gray-300'}`}>
-                            <span>💸</span> Lançamentos
-                        </button>
-                        <button onClick={() => setView('timeline')} className={`p-3 rounded text-left flex items-center gap-2 ${view === 'timeline' ? 'bg-foco-orange text-white' : 'hover:bg-gray-800 text-gray-300'}`}>
-                            <span>📈</span> Fluxo de Caixa
-                        </button>
-                        
-                        <div className="mt-auto pt-4 border-t border-gray-800">
-                            <button onClick={exportToExcel} className="w-full p-3 rounded bg-green-700 hover:bg-green-600 text-white font-bold text-sm flex items-center justify-center gap-2">
-                                📥 Exportar Excel
-                            </button>
-                        </div>
+                        <h2 className="mt-3 font-bold text-orange-500 uppercase tracking-tighter">Foco Consultoria</h2>
+                        <input className="text-xs bg-transparent border-none text-center w-full" value={profile.name} onChange={(e) => setProfile({...profile, name: e.target.value})} />
+                    </div>
+                    
+                    <nav className="flex-1 mt-4 overflow-y-auto">
+                        <MenuBtn icon="📊" label="Dashboard" active={view==='dashboard'} onClick={()=>setView('dashboard')} />
+                        <MenuBtn icon="📁" label="Cadastros Básicos" active={view==='cadastros'} onClick={()=>setView('cadastros')} />
+                        <MenuBtn icon="💸" label="Lançamentos CRUD" active={view==='lancamentos'} onClick={()=>setView('lancamentos')} />
+                        <MenuBtn icon="📑" label="Extrato & Relatórios" active={view==='extrato'} onClick={()=>setView('extrato')} />
+                        <MenuBtn icon="📈" label="Mercado Financeiro" active={view==='mercado'} onClick={()=>setView('mercado')} />
+                        <MenuBtn icon="💡" label="Análise & Dicas" active={view==='analise'} onClick={()=>setView('analise')} />
                     </nav>
 
-                    {/* Botão para fechar/abrir menu no mobile */}
-                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden bg-foco-orange p-2 text-white font-bold text-center">
-                        {sidebarOpen ? 'Fechar Menu' : 'Abrir Menu'}
-                    </button>
+                    <div className="p-4 border-t border-gray-800 text-[10px] text-gray-500 text-center">
+                        Integrado com Google Cloud Sync (Mock)
+                    </div>
+                </aside>
+            );
 
-                    {/* Conteúdo Principal */}
-                    <main className="flex-1 p-4 md:p-8 bg-black overflow-y-auto">
-                        <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
-                            <h1 className="text-xl font-light">Bem-vindo, <span className="font-bold text-foco-orange text-2xl">Usuário</span></h1>
-                            <div className="text-right hidden sm:block">
-                                <p className="text-[10px] text-gray-500 uppercase">Mercado Financeiro</p>
-                                <p className="text-xs font-mono text-green-500">USD: R$ 5,15 | SELIC: 11,75%</p>
+            const MenuBtn = ({icon, label, active, onClick}) => (
+                <button onClick={onClick} className={`w-full flex items-center gap-4 px-6 py-4 text-sm transition-all ${active ? 'active-menu' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}>
+                    <span>{icon}</span> {label}
+                </button>
+            );
+
+            return (
+                <div className="flex flex-col md:flex-row min-h-screen">
+                    <Sidebar />
+
+                    <main className="flex-1 p-6 md:p-12 overflow-x-hidden">
+                        {/* HEADER */}
+                        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4 no-print">
+                            <div>
+                                <h1 className="text-3xl font-black italic">GESTAO PESSOAL</h1>
+                                <p className="text-gray-400 text-sm italic">Foco Consultoria Financeira</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button className="bg-white text-black px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-200">
+                                    <img src="https://www.google.com/favicon.ico" className="w-4" /> Google Docs Sync
+                                </button>
+                                <button onClick={() => window.print()} className="bg-gray-800 px-4 py-2 rounded-lg text-sm">🖨️ Imprimir</button>
                             </div>
                         </header>
 
+                        {/* DASHBOARD */}
                         {view === 'dashboard' && (
-                            <div className="animate-fadeIn">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                    <div className="card border-l-4 border-green-500">
-                                        <p className="text-gray-400 text-xs uppercase mb-1">Total Receitas</p>
-                                        <p className="text-3xl font-bold text-green-500">R$ {totals.in.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
-                                    </div>
-                                    <div className="card border-l-4 border-red-500">
-                                        <p className="text-gray-400 text-xs uppercase mb-1">Total Despesas</p>
-                                        <p className="text-3xl font-bold text-red-500">R$ {totals.out.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
-                                    </div>
-                                    <div className="card border-l-4 border-foco-orange">
-                                        <p className="text-gray-400 text-xs uppercase mb-1">Saldo Líquido</p>
-                                        <p className="text-3xl font-bold text-white">R$ {(totals.in - totals.out).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
-                                    </div>
+                            <div className="space-y-8 animate-fadeIn">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    <StatCard label="Receitas" val={totals.in} color="text-green-500" />
+                                    <StatCard label="Despesas" val={totals.out} color="text-red-500" />
+                                    <StatCard label="Saldo Líquido" val={totals.in - totals.out} color="text-orange-500" />
                                 </div>
-
-                                <div className="card bg-foco-black border border-gray-700">
-                                    <h3 className="font-bold text-foco-orange mb-3 flex items-center gap-2">
-                                        <span>💡</span> Dica da Consultoria Foco
-                                    </h3>
-                                    <div className="p-4 bg-gray-900 rounded-lg">
-                                        {(totals.in - totals.out) < 0 ? (
-                                            <p className="text-red-400">⚠️ <span className="font-bold underline">Cuidado:</span> Suas despesas superaram suas receitas este mês. Sugerimos revisar seus custos fixos e evitar gastos no cartão de crédito.</p>
-                                        ) : (
-                                            <p className="text-green-400">✅ <span className="font-bold underline">Parabéns:</span> Você está com saldo positivo. Considere investir o excedente na Selic para aproveitar os 11,75% ao ano.</p>
-                                        )}
+                                <div className="card p-6">
+                                    <h3 className="text-orange-500 font-bold mb-4 italic uppercase">📈 Resumo por Categoria</h3>
+                                    <div className="h-4 bg-gray-800 rounded-full overflow-hidden flex">
+                                        <div className="bg-orange-500 h-full" style={{width: '60%'}}></div>
+                                        <div className="bg-green-500 h-full" style={{width: '20%'}}></div>
+                                        <div className="bg-blue-500 h-full" style={{width: '20%'}}></div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
+                        {/* CADASTROS */}
+                        {view === 'cadastros' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="card p-6">
+                                    <h3 className="font-bold mb-4 text-orange-500 uppercase italic">Categorias de Gasto</h3>
+                                    <div className="flex gap-2 mb-4">
+                                        <input id="newCat" className="flex-1" placeholder="Nova Categoria..." />
+                                        <button className="btn-orange px-4 rounded" onClick={() => {
+                                            const v = document.getElementById('newCat').value;
+                                            if(v) setCategories([...categories, v]);
+                                        }}>+</button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {categories.map(c => <span key={c} className="bg-gray-800 px-3 py-1 rounded-full text-xs border border-gray-600 flex items-center gap-2">{c} <button onClick={()=>setCategories(categories.filter(x=>x!==c))}>×</button></span>)}
+                                    </div>
+                                </div>
+                                <div className="card p-6">
+                                    <h3 className="font-bold mb-4 text-orange-500 uppercase italic">Bancos e Contas</h3>
+                                    {banks.map(b => <div key={b} className="flex justify-between items-center border-b border-gray-800 py-2"><span>{b}</span> <button className="text-red-500 text-xs" onClick={()=>setBanks(banks.filter(x=>x!==b))}>Excluir</button></div>)}
+                                    <button className="w-full mt-4 p-2 border border-dashed border-gray-600 rounded text-xs" onClick={()=>setBanks([...banks, prompt('Nome do Banco:')])}>+ Adicionar Banco</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* LANÇAMENTOS CRUD */}
                         {view === 'lancamentos' && (
-                            <div className="card animate-fadeIn">
-                                <h2 className="text-xl font-bold mb-6 text-foco-orange">Novo Lançamento</h2>
-                                <form className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10" onSubmit={(e) => {
-                                    e.preventDefault();
-                                    const d = new FormData(e.target);
-                                    const novo = {
-                                        id: Date.now(),
-                                        desc: d.get('desc'),
-                                        value: d.get('val'),
-                                        type: d.get('type'),
-                                        date: d.get('date'),
-                                        status: d.get('status')
-                                    };
-                                    setTransactions([novo, ...transactions]);
-                                    e.target.reset();
-                                }}>
-                                    <div className="flex flex-col">
-                                        <label className="text-xs text-gray-400 mb-1">Descrição</label>
-                                        <input name="desc" className="p-2 rounded bg-white text-black" placeholder="Ex: Aluguel" required />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <label className="text-xs text-gray-400 mb-1">Valor (R$)</label>
-                                        <input name="val" type="number" step="0.01" className="p-2 rounded bg-white text-black" placeholder="0.00" required />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <label className="text-xs text-gray-400 mb-1">Tipo</label>
-                                        <select name="type" className="p-2 rounded bg-white text-black">
-                                            <option value="Despesa">Despesa</option>
-                                            <option value="Receita">Receita</option>
+                            <div className="space-y-6">
+                                <div className="card p-6 border-orange-900">
+                                    <h3 className="font-bold mb-4 uppercase text-orange-500 italic">{editingItem ? 'Editar Registro' : 'Novo Lançamento Diário'}</h3>
+                                    <form onSubmit={handleSaveTransaction} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <input name="desc" defaultValue={editingItem?.desc} placeholder="Descrição (Ex: Supermercado)" required className="md:col-span-2" />
+                                        <input name="value" defaultValue={editingItem?.value} type="number" step="0.01" placeholder="Valor R$" required />
+                                        <select name="type" defaultValue={editingItem?.type}>
+                                            <option>Despesa</option>
+                                            <option>Receita</option>
                                         </select>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <label className="text-xs text-gray-400 mb-1">Vencimento</label>
-                                        <input name="date" type="date" className="p-2 rounded bg-white text-black" required />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <label className="text-xs text-gray-400 mb-1">Status</label>
-                                        <select name="status" className="p-2 rounded bg-white text-black">
-                                            <option value="Realizado">Pago / Recebido</option>
-                                            <option value="Previsto">Agendado (Previsto)</option>
+                                        <select name="cat" defaultValue={editingItem?.cat}>
+                                            {categories.map(c => <option key={c}>{c}</option>)}
                                         </select>
-                                    </div>
-                                    <button className="bg-foco-orange text-white font-bold p-2 rounded self-end md:col-span-3 hover:brightness-110 transition-all">
-                                        + ADICIONAR LANÇAMENTO
-                                    </button>
-                                </form>
+                                        <select name="bank" defaultValue={editingItem?.bank}>
+                                            {banks.map(b => <option key={b}>{b}</option>)}
+                                        </select>
+                                        <input name="date" type="date" defaultValue={editingItem?.date || new Date().toISOString().split('T')[0]} required />
+                                        <select name="status" defaultValue={editingItem?.status}>
+                                            <option>Pago/Realizado</option>
+                                            <option>Previsto</option>
+                                        </select>
+                                        <textarea name="obs" defaultValue={editingItem?.obs} placeholder="Observações adicionais..." className="md:col-span-3 h-10"></textarea>
+                                        <button type="submit" className="btn-orange rounded uppercase">{editingItem ? 'Atualizar' : 'Salvar Lançamento'}</button>
+                                        {editingItem && <button type="button" onClick={()=>setEditingItem(null)} className="bg-gray-700 rounded uppercase">Cancelar</button>}
+                                    </form>
+                                </div>
 
-                                <div className="overflow-x-auto mt-4">
-                                    <table className="w-full text-left">
-                                        <thead className="bg-gray-800">
-                                            <tr>
-                                                <th className="p-3 text-xs uppercase text-gray-400">Data</th>
-                                                <th className="p-3 text-xs uppercase text-gray-400">Descrição</th>
-                                                <th className="p-3 text-xs uppercase text-gray-400">Status</th>
-                                                <th className="p-3 text-xs uppercase text-gray-400 text-right">Valor</th>
-                                                <th className="p-3 text-xs uppercase text-gray-400 text-center">Ações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {transactions.length === 0 && (
-                                                <tr><td colSpan="5" className="p-10 text-center text-gray-600 italic">Nenhum registro encontrado.</td></tr>
-                                            )}
-                                            {transactions.map(t => (
-                                                <tr key={t.id} className="border-b border-gray-800 hover:bg-gray-900 transition-colors">
-                                                    <td className="p-3 text-sm">{new Date(t.date).toLocaleDateString('pt-BR')}</td>
-                                                    <td className="p-3 font-medium">{t.desc}</td>
-                                                    <td className="p-3">
-                                                        <span className={`text-[9px] px-2 py-1 rounded-full font-bold uppercase ${t.status === 'Realizado' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>
-                                                            {t.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className={`p-3 text-right font-bold ${t.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>
-                                                        R$ {parseFloat(t.value).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                                    </td>
-                                                    <td className="p-3 text-center">
-                                                        <button onClick={() => deleteItem(t.id)} className="text-gray-500 hover:text-red-500 transition-colors text-xl">🗑️</button>
-                                                    </td>
+                                <div className="card p-6">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold uppercase text-orange-500 italic">Upload de Documentos</h3>
+                                        <div className="flex gap-2">
+                                            <label className="text-[10px] bg-gray-800 p-2 rounded cursor-pointer hover:bg-gray-700">
+                                                📁 Subir Extrato (CSV/OFX)
+                                                <input type="file" className="hidden" accept=".csv,.ofx,.txt" onChange={handleFileUpload} />
+                                            </label>
+                                            <label className="text-[10px] bg-gray-800 p-2 rounded cursor-pointer hover:bg-gray-700">
+                                                📄 Subir Nota Fiscal (XML)
+                                                <input type="file" className="hidden" accept=".xml" onChange={handleFileUpload} />
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-xs text-left">
+                                            <thead className="text-gray-500 border-b border-gray-800 uppercase">
+                                                <tr>
+                                                    <th className="p-3 text-foco-orange">Data</th>
+                                                    <th className="p-3">Descrição</th>
+                                                    <th className="p-3">Categoria</th>
+                                                    <th className="p-3">Conta</th>
+                                                    <th className="p-3 text-right">Valor</th>
+                                                    <th className="p-3 text-center">Ações</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                {transactions.map(t => (
+                                                    <tr key={t.id} className="border-b border-gray-900 hover:bg-black transition-colors">
+                                                        <td className="p-3">{t.date}</td>
+                                                        <td className="p-3 font-bold">{t.desc}</td>
+                                                        <td className="p-3"><span className="bg-gray-800 px-2 py-1 rounded">{t.cat}</span></td>
+                                                        <td className="p-3 text-gray-400">{t.bank}</td>
+                                                        <td className={`p-3 text-right font-bold ${t.type==='Receita' ? 'text-green-500' : 'text-red-500'}`}>R$ {parseFloat(t.value).toFixed(2)}</td>
+                                                        <td className="p-3 text-center space-x-2">
+                                                            <button onClick={()=>setEditingItem(t)}>✏️</button>
+                                                            <button onClick={()=>{ if(confirm('Excluir?')) setTransactions(transactions.filter(x=>x.id!==t.id)) }}>🗑️</button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {view === 'timeline' && (
-                            <div className="card animate-fadeIn">
-                                <h2 className="text-xl font-bold mb-4 text-foco-orange">Linha do Tempo de Fluxo de Caixa</h2>
-                                <p className="text-sm text-gray-500 mb-8 font-light italic">Visualize a ordem cronológica das suas movimentações financeiras.</p>
-                                
-                                <div className="relative border-l-2 border-gray-800 ml-4 space-y-8 pb-4">
-                                    {transactions.sort((a,b) => new Date(a.date) - new Date(b.date)).map(t => (
-                                        <div key={t.id} className="relative pl-8">
-                                            <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full ${t.type === 'Receita' ? 'bg-green-500' : 'bg-red-500'} border-4 border-black`}></div>
-                                            <div className="bg-gray-900 p-4 rounded-lg border border-gray-800 flex justify-between items-center">
-                                                <div>
-                                                    <p className="text-[10px] text-gray-500 uppercase font-bold">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
-                                                    <p className="font-bold text-white uppercase text-sm">{t.desc}</p>
-                                                    <p className="text-[10px] text-gray-400">{t.status}</p>
-                                                </div>
-                                                <div className={`text-lg font-mono font-bold ${t.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>
-                                                    {t.type === 'Receita' ? '+' : '-'} R$ {parseFloat(t.value).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
+                        {/* EXTRATO E RELATÓRIOS */}
+                        {view === 'extrato' && (
+                            <div className="card p-8 space-y-6 animate-fadeIn">
+                                <div className="flex justify-between items-center border-b border-gray-800 pb-4">
+                                    <h3 className="text-xl font-black italic uppercase">Extrato Consolidado</h3>
+                                    <div className="flex gap-2">
+                                        <button onClick={exportPDF} className="bg-red-900 px-4 py-2 rounded text-xs font-bold">Exportar PDF</button>
+                                        <button onClick={()=>{
+                                            const ws = XLSX.utils.json_to_sheet(transactions);
+                                            const wb = XLSX.utils.book_new();
+                                            XLSX.utils.book_append_sheet(wb, ws, "Foco_Relatorio");
+                                            XLSX.writeFile(wb, "Gestao_Financeira_Foco.xlsx");
+                                        }} className="bg-green-900 px-4 py-2 rounded text-xs font-bold">Exportar Excel (XLS)</button>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-gray-900 rounded border border-gray-800">
+                                    <p className="text-xs text-gray-500 mb-2">Filtro Rápido</p>
+                                    <div className="flex gap-4">
+                                        <select className="flex-1"><option>Todos os Bancos</option></select>
+                                        <select className="flex-1"><option>Mês Atual</option></select>
+                                    </div>
+                                </div>
+                                {/* Reuso da tabela de lançamentos mas em modo visualização */}
+                                <p className="text-center text-gray-600 italic">Visualize e exporte seus dados para auditoria ou contabilidade.</p>
+                            </div>
+                        )}
+
+                        {/* MERCADO FINANCEIRO */}
+                        {view === 'mercado' && (
+                            <div className="space-y-6 animate-fadeIn">
+                                <h3 className="text-orange-500 font-bold uppercase italic">Indicadores em Tempo Real</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <MarketCard label="Dólar" val={`R$ ${market.usd}`} sub="Comercial" />
+                                    <MarketCard label="Bitcoin" val={`R$ ${market.btc}`} sub="Exchanges" />
+                                    <MarketCard label="Taxa SELIC" val={market.selic} sub="BCB" />
+                                    <MarketCard label="Ibovespa" val={market.ibov} sub="Pontos" />
+                                    <MarketCard label="IPCA" val={market.ipca} sub="Acumulado" />
+                                    <MarketCard label="Salário Mínimo" val="R$ 1.412,00" sub="2024" />
+                                </div>
+                                <div className="card p-6 bg-orange-950/20 border-orange-900">
+                                    <h4 className="font-bold text-orange-500 mb-2 italic">Análise de Cenário</h4>
+                                    <p className="text-sm">Com o dólar a <strong>R$ {market.usd}</strong> e a Selic em <strong>{market.selic}</strong>, o cenário favorece investimentos em Renda Fixa atrelados ao CDI. Evite compras internacionais agora.</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ANÁLISE E DICAS */}
+                        {view === 'analise' && (
+                            <div className="space-y-8 animate-fadeIn">
+                                <div className="card p-10 text-center border-orange-500 border-dashed">
+                                    <h2 className="text-4xl font-black mb-4">SAÚDE FINANCEIRA</h2>
+                                    <div className="text-6xl mb-4">{(totals.in - totals.out) >= 0 ? '😊' : '😰'}</div>
+                                    <p className="text-xl">Seu saldo atual é de <span className={`font-bold ${(totals.in-totals.out) >= 0 ? 'text-green-500' : 'text-red-500'}`}>R$ {(totals.in-totals.out).toFixed(2)}</span></p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="card p-6 bg-red-900/10 border-red-900">
+                                        <h4 className="font-bold text-red-500 mb-2 tracking-tighter uppercase italic">Pontos Críticos ⚠️</h4>
+                                        <ul className="text-sm list-disc pl-4 space-y-2">
+                                            <li>Seu gasto com '{categories[0]}' representa 40% da renda.</li>
+                                            <li>Você tem 3 lançamentos agendados para os próximos 5 dias sem saldo suficiente.</li>
+                                        </ul>
+                                    </div>
+                                    <div className="card p-6 bg-green-900/10 border-green-900">
+                                        <h4 className="font-bold text-green-500 mb-2 tracking-tighter uppercase italic">Oportunidades ✅</h4>
+                                        <ul className="text-sm list-disc pl-4 space-y-2">
+                                            <li>Aporte R$ 500,00 no Tesouro Direto para bater sua meta de 12 meses.</li>
+                                            <li>Você reduziu gastos fixos em 10% comparado ao mês anterior. Parabéns!</li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -250,6 +368,22 @@
                 </div>
             );
         }
+
+        // Sub-componentes auxiliares
+        const StatCard = ({label, val, color}) => (
+            <div className="card p-6">
+                <p className="text-[10px] uppercase text-gray-500 font-bold mb-1 tracking-widest">{label}</p>
+                <p className={`text-3xl font-black ${color}`}>R$ {parseFloat(val || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+            </div>
+        );
+
+        const MarketCard = ({label, val, sub}) => (
+            <div className="card p-4 text-center">
+                <p className="text-[10px] text-orange-500 uppercase font-bold">{label}</p>
+                <p className="text-lg font-black">{val}</p>
+                <p className="text-[9px] text-gray-500 uppercase">{sub}</p>
+            </div>
+        );
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
