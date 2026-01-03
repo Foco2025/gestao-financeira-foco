@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão Pessoal - Foco Consultoria 2026</title>
-    <!-- Bibliotecas -->
+    <!-- Bibliotecas Diretas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -13,17 +13,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
     <style>
-        :root { --orange: #FF6600; --black: #000000; --gray: #121212; --card: #1C1C1C; }
+        :root { --orange: #FF6600; --black: #000000; --gray: #121212; --card: #181818; }
         body { background-color: var(--black); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-        .sidebar { background-color: var(--gray); border-right: 1px solid #333; width: 260px; flex-shrink: 0; display: flex; flex-direction: column; transition: 0.3s; }
+        .sidebar { background-color: var(--gray); border-right: 1px solid #333; width: 260px; flex-shrink: 0; display: flex; flex-direction: column; overflow-y: auto; }
         .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 30px; background: var(--black); }
-        .menu-item { padding: 14px 24px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #888; font-weight: 600; font-size: 13px; border-left: 4px solid transparent; text-transform: uppercase; }
+        .menu-item { padding: 14px 24px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: #888; font-weight: 600; font-size: 12px; border-left: 4px solid transparent; text-transform: uppercase; }
         .menu-item:hover, .menu-item.active { background: #1a1a1a; color: var(--orange); border-left-color: var(--orange); }
-        .card { background: #181818; border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
         .btn-orange { background-color: var(--orange); color: white; font-weight: bold; border-radius: 8px; padding: 12px 20px; cursor: pointer; border: none; }
         input, select, textarea { background: #222 !important; color: white !important; border: 1px solid #444 !important; padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-top: 5px; }
         .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; font-size: 11px; color: var(--orange); font-weight: bold; display: block; }
-        @media (max-width: 768px) { .sidebar { position: fixed; left: -260px; height: 100%; z-index: 100; } .sidebar.open { left: 0; } }
+        @media (max-width: 768px) { .sidebar { position: fixed; left: -260px; height: 100%; z-index: 100; transition: 0.3s; } .sidebar.open { left: 0; } }
     </style>
 </head>
 <body class="flex">
@@ -39,7 +39,7 @@
             <h2 class="text-orange-500 font-black italic text-lg mt-3 uppercase tracking-tighter">Foco Consultoria</h2>
             <p class="text-[9px] text-gray-500 font-bold uppercase">Gestão Pessoal 2026</p>
         </div>
-        <div class="flex-1 mt-4 overflow-y-auto">
+        <div class="flex-1 mt-4">
             <div class="menu-item active" onclick="nav('dashboard', this)"><span>📊</span> Dashboard</div>
             <div class="menu-item" onclick="nav('cadastros', this)"><span>📁</span> Categorias & Bancos</div>
             <div class="menu-item" onclick="nav('lancamentos', this)"><span>💸</span> Lançamentos & Up</div>
@@ -51,7 +51,7 @@
         </div>
     </nav>
 
-    <!-- MAIN -->
+    <!-- CONTEÚDO -->
     <main class="main-content">
         <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-800">
             <h1 id="page-title" class="text-xl font-black text-orange-500 italic uppercase">Dashboard</h1>
@@ -59,11 +59,10 @@
         </header>
 
         <div id="views-container">
-            
             <!-- DASHBOARD -->
             <section id="v-dashboard">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 uppercase font-bold text-center">
-                    <div class="card border-l-4 border-green-500"><p class="text-[10px] text-gray-500">Ganhos + Saldos Iniciais</p><p id="d-in" class="text-2xl text-green-500">R$ 0,00</p></div>
+                    <div class="card border-l-4 border-green-500"><p class="text-[10px] text-gray-500">Ganhos + Saldos</p><p id="d-in" class="text-2xl text-green-500">R$ 0,00</p></div>
                     <div class="card border-l-4 border-red-500"><p class="text-[10px] text-gray-500">Total Despesas</p><p id="d-out" class="text-2xl text-red-500">R$ 0,00</p></div>
                     <div class="card border-l-4 border-orange-500"><p class="text-[10px] text-gray-500">Saldo Real Atual</p><p id="d-total" class="text-2xl">R$ 0,00</p></div>
                 </div>
@@ -75,7 +74,7 @@
 
             <!-- CADASTROS -->
             <section id="v-cadastros" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 font-bold">
                     <div class="card">
                         <h3 class="text-orange-500 font-bold mb-4 uppercase italic">Bancos e Contas</h3>
                         <div class="space-y-4">
@@ -90,8 +89,11 @@
                         <div id="list-banks" class="mt-6 space-y-2"></div>
                     </div>
                     <div class="card">
-                        <h3 class="text-orange-500 font-bold mb-4 uppercase italic">Categorias</h3>
-                        <div class="flex gap-2 mb-4"><input type="text" id="cat-in" placeholder="Ex: Lazer"><button class="btn-orange" onclick="addCat()">+</button></div>
+                        <h3 class="text-orange-500 font-bold mb-4 uppercase italic">Categorias de Lançamento</h3>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="cat-in" placeholder="Nova Categoria">
+                            <button class="btn-orange" onclick="addCategory()">+</button>
+                        </div>
                         <div id="list-cats" class="flex flex-wrap gap-2"></div>
                     </div>
                 </div>
@@ -99,7 +101,7 @@
 
             <!-- LANÇAMENTOS -->
             <section id="v-lancamentos" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 font-bold text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 font-bold">
                     <div class="card md:col-span-2 border-orange-500/20">
                         <h3 class="text-orange-500 font-bold mb-4 uppercase italic">Lançar Manualmente</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -112,9 +114,9 @@
                         </div>
                     </div>
                     <div class="card bg-gray-950 border-dashed border-2 border-gray-800 text-center flex flex-col justify-center">
-                        <h3 class="text-orange-500 font-bold mb-4 uppercase text-xs">Uploads</h3>
-                        <label class="dropzone mb-2">📥 EXTRATO OFX / CSV <input type="file" class="hidden" onchange="alert('Arquivo lido!')"></label>
-                        <label class="dropzone">📄 NOTA FISCAL XML <input type="file" class="hidden" onchange="alert('XML Processado!')"></label>
+                        <h3 class="text-orange-500 font-bold mb-4 uppercase text-xs italic tracking-widest">Importar Arquivo</h3>
+                        <label class="dropzone mb-2">📥 OFX / CSV <input type="file" class="hidden" onchange="alert('Arquivo importado!')"></label>
+                        <label class="dropzone">📄 NOTA FISCAL XML <input type="file" class="hidden" onchange="alert('XML processado!')"></label>
                     </div>
                 </div>
                 <div class="card overflow-x-auto">
@@ -125,15 +127,60 @@
                 </div>
             </section>
 
-            <!-- RESTO DAS VIEWS MANTIDAS... -->
-            <section id="v-cartoes" class="hidden">
-                <div class="card mb-8"><h3 class="text-orange-500 font-bold mb-4 uppercase italic">Cartões</h3><div class="grid grid-cols-1 md:grid-cols-4 gap-4"><input type="text" id="c-name" placeholder="Nome do Cartão"><input type="number" id="c-limit" placeholder="Limite"><input type="number" id="c-venc" placeholder="Dia Vencimento"><button class="btn-orange" onclick="addCard()">CADASTRAR</button></div></div>
+            <!-- CARTÕES -->
+            <section id="v-cartoes" class="hidden font-bold">
+                <div class="card mb-8">
+                    <h3 class="text-orange-500 font-bold mb-4 uppercase italic">Meus Cartões</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="c-name" placeholder="Nome do Cartão">
+                        <input type="number" id="c-limit" placeholder="Limite">
+                        <input type="number" id="c-venc" placeholder="Dia Vencimento">
+                        <button class="btn-orange" onclick="addCard()">CADASTRAR</button>
+                    </div>
+                </div>
                 <div id="c-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
             </section>
-            <section id="v-timeline" class="hidden"><div class="card"><h3 class="text-orange-500 font-bold mb-8 uppercase italic underline">Fluxo de Caixa Consolidado</h3><div id="tl-body" class="relative border-l-2 border-orange-500 ml-4 space-y-8 uppercase text-[10px] font-bold"></div></div></section>
-            <section id="v-conversor" class="hidden"><div class="card max-w-lg mx-auto border-orange-500 text-center py-10"><h3 class="text-xl font-bold mb-6 text-orange-500 uppercase italic">Conversor</h3><input type="number" id="cv-val" value="1" class="text-3xl text-center mb-4"><select id="cv-from" class="text-center mb-6"><option value="USD">Dólar (USD)</option><option value="EUR">Euro (EUR)</option><option value="BTC">Bitcoin (BTC)</option></select><div class="p-8 bg-black rounded-xl border border-gray-800"><p id="cv-res" class="text-4xl text-orange-500 font-black">R$ 0,00</p></div></div></section>
-            <section id="v-mercado" class="hidden"><div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center font-black uppercase text-[10px]"><div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-1">Dólar</p><p id="m-u" class="text-xl">R$ 5,12</p></div><div class="card border-t-4 border-white"><p class="text-gray-500 mb-1">Mínimo 2026</p><p class="text-xl text-orange-500">R$ 1.571,00</p></div><div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-1">SELIC</p><p class="text-xl">10.50%</p></div><div class="card border-t-4 border-green-500"><p class="text-gray-500 mb-1">Bitcoin</p><p id="m-b" class="text-xl text-green-500">R$ 400k</p></div></div></section>
-            <section id="v-relatorios" class="hidden font-black"><div class="card border-orange-500 bg-orange-950/10 text-center py-10 uppercase italic"><h3 class="text-2xl mb-8 text-orange-500 underline">Exportação</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8"><button onclick="exportData('pdf')" class="bg-red-900 p-6 rounded hover:bg-red-700">PDF</button><button onclick="exportData('xls')" class="bg-green-800 p-6 rounded hover:bg-green-700">EXCEL</button><button onclick="exportData('txt')" class="bg-blue-800 p-6 rounded hover:bg-blue-700">TXT</button><button onclick="exportData('xml')" class="bg-gray-800 p-6 rounded hover:bg-gray-600">XML</button></div><button onclick="window.print()" class="w-full btn-orange py-4 text-xl">🖨️ IMPRIMIR TUDO</button></div></section>
+
+            <!-- TIMELINE -->
+            <section id="v-timeline" class="hidden">
+                <div class="card"><h3 class="text-orange-500 font-bold mb-8 uppercase italic underline">Fluxo Cronológico</h3><div id="tl-body" class="relative border-l-2 border-orange-500 ml-4 space-y-8 uppercase text-[10px] font-bold"></div></div>
+            </section>
+
+            <!-- CONVERSOR -->
+            <section id="v-conversor" class="hidden">
+                <div class="card max-w-lg mx-auto border-orange-500 text-center py-10">
+                    <h3 class="text-xl font-bold mb-6 text-orange-500 uppercase italic font-black">Conversor de Moedas</h3>
+                    <input type="number" id="cv-val" value="1" class="text-3xl text-center mb-4">
+                    <select id="cv-from" class="text-center mb-6 font-bold"><option value="USD">Dólar (USD)</option><option value="EUR">Euro (EUR)</option><option value="BTC">Bitcoin (BTC)</option></select>
+                    <div class="p-8 bg-black rounded-xl border border-gray-800">
+                        <p id="cv-res" class="text-4xl text-orange-500 font-black">R$ 0,00</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MERCADO -->
+            <section id="v-mercado" class="hidden">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center font-black uppercase text-[10px]">
+                    <div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-1">USD Hoje</p><p id="m-u" class="text-xl">R$ 5,12</p></div>
+                    <div class="card border-t-4 border-white"><p class="text-gray-500 mb-1">Mínimo 2026</p><p class="text-xl text-orange-500">R$ 1.571,00</p></div>
+                    <div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-1">SELIC</p><p class="text-xl">10.50%</p></div>
+                    <div class="card border-t-4 border-green-500"><p class="text-gray-500 mb-1">Bitcoin</p><p id="m-b" class="text-xl text-green-500">R$ 400k</p></div>
+                </div>
+            </section>
+
+            <!-- RELATÓRIOS -->
+            <section id="v-relatorios" class="hidden font-black italic">
+                <div class="card border-orange-500 bg-orange-950/10 text-center py-10 uppercase">
+                    <h3 class="text-2xl mb-8 text-orange-500 underline tracking-tighter">Central de Exportação</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <button onclick="exportData('pdf')" class="bg-red-900 p-6 rounded hover:bg-red-700">PDF</button>
+                        <button onclick="exportData('xls')" class="bg-green-800 p-6 rounded hover:bg-green-700">EXCEL</button>
+                        <button onclick="exportData('txt')" class="bg-blue-800 p-6 rounded hover:bg-blue-700">TXT</button>
+                        <button onclick="exportData('xml')" class="bg-gray-800 p-6 rounded hover:bg-gray-600">XML</button>
+                    </div>
+                    <button onclick="window.print()" class="w-full btn-orange py-4 text-xl">🖨️ IMPRIMIR COMPLETO</button>
+                </div>
+            </section>
         </div>
     </main>
 
@@ -144,7 +191,7 @@
         let state = {
             tx: JSON.parse(localStorage.getItem('f_tx')) || [],
             bn: JSON.parse(localStorage.getItem('f_bn')) || [],
-            ct: JSON.parse(localStorage.getItem('f_ct')) || ['Moradia', 'Salário'],
+            ct: JSON.parse(localStorage.getItem('f_ct')) || ['Moradia', 'Alimentação', 'Salário'],
             cr: JSON.parse(localStorage.getItem('f_cr')) || [],
             pr: JSON.parse(localStorage.getItem('f_pr')) || { photo: 'https://via.placeholder.com/100' },
             mk: { usd: 5.15, eur: 5.58, btc: 410000 }
@@ -166,34 +213,35 @@
             if(el) el.classList.add('active');
             document.getElementById('page-title').innerText = id.toUpperCase();
             if(id === 'dashboard') initCharts();
-            document.getElementById('sidebar').classList.remove('open');
         }
 
-        // --- CORREÇÃO NO CADASTRO DE BANCO ---
+        // --- CRUD FUNÇÕES ---
         window.addBank = function() {
             const n = document.getElementById('bnk-n').value;
-            const a = document.getElementById('bnk-a').value;
+            const a = document.getElementById('bnk-ag').value;
             const c = document.getElementById('bnk-cc').value;
             const s = document.getElementById('bnk-s').value || 0;
-            if(!n) return alert("Informe o nome do banco!");
-            
-            // Adiciona à lista de bancos
+            if(!n) return;
             state.bn.push({ id: Date.now(), name: n, ag: a, cc: c, balance: s });
             save();
-            
-            // Limpa campos
             document.getElementById('bnk-n').value = '';
-            document.getElementById('bnk-a').value = '';
-            document.getElementById('bnk-c').value = '';
+            document.getElementById('bnk-ag').value = '';
+            document.getElementById('bnk-cc').value = '';
             document.getElementById('bnk-s').value = '';
         };
 
-        function addCat() {
-            const n = document.getElementById('cat-in').value;
-            if(n) { state.ct.push(n); save(); document.getElementById('cat-in').value = ''; }
-        }
+        // CORREÇÃO: Função de Categorias restaurada
+        window.addCategory = function() {
+            const input = document.getElementById('cat-in');
+            const n = input.value.trim();
+            if(n) {
+                state.ct.push(n);
+                save();
+                input.value = '';
+            }
+        };
 
-        function addTx() {
+        window.addTx = function() {
             const d = document.getElementById('t-desc').value;
             const v = document.getElementById('t-val').value;
             const dt = document.getElementById('t-date').value;
@@ -201,17 +249,21 @@
             const b = document.getElementById('t-bank').value;
             if(!d || !v || !dt) return alert('Preencha os campos!');
             state.tx.push({ id: Date.now(), desc: d, value: v, date: dt, type: t, bank: b });
-            save(); document.getElementById('t-desc').value = ''; document.getElementById('t-val').value = '';
-        }
+            save();
+            document.getElementById('t-desc').value = '';
+            document.getElementById('t-val').value = '';
+        };
 
-        function addCard() {
+        window.addCard = function() {
             const n = document.getElementById('c-name').value;
             const l = document.getElementById('c-limit').value;
             const v = document.getElementById('c-venc').value;
             if(!n || !l) return;
             state.cr.push({ id: Date.now(), name: n, limit: l, used: 0, venc: v });
-            save(); document.getElementById('c-name').value = '';
-        }
+            save();
+            document.getElementById('c-name').value = '';
+            document.getElementById('c-limit').value = '';
+        };
 
         async function readPDF(e, id) {
             const file = e.target.files[0];
@@ -229,7 +281,7 @@
                 const dM = text.match(/Vencimento\s*(\d{2}\/\d{2}\/\d{4})/i);
                 if(vM && dM) {
                     const val = parseFloat(vM[1].replace(/\./g, '').replace(',', '.'));
-                    state.tx.push({ id: Date.now(), desc: `Fatura: ${file.name}`, value: val, date: dM[1].split('/').reverse().join('-'), type: 'Despesa', bank: 'Cartão' });
+                    state.tx.push({ id: Date.now(), desc: `Inter: ${file.name}`, value: val, date: dM[1].split('/').reverse().join('-'), type: 'Despesa', bank: 'Cartão' });
                     state.cr = state.cr.map(c => c.id === id ? {...c, used: val} : c);
                     save(); alert("Fatura importada!");
                 }
@@ -237,43 +289,37 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // --- RENDERIZAÇÃO COM INTEGRAÇÃO DE SALDO ---
+        // --- RENDERIZAÇÃO ---
         function render() {
-            // Calcula Saldos Iniciais dos Bancos
             const initialBankTotal = state.bn.reduce((acc, b) => acc + parseFloat(b.balance || 0), 0);
-            
-            // Calcula Movimentações
             const tin = state.tx.filter(t => t.type === 'Receita').reduce((a,b) => a + parseFloat(b.value), 0);
             const tout = state.tx.filter(t => t.type === 'Despesa').reduce((a,b) => a + parseFloat(b.value), 0);
             
-            // Soma tudo para o Dashboard
             document.getElementById('d-in').innerText = 'R$ ' + (tin + initialBankTotal).toLocaleString('pt-BR');
             document.getElementById('d-out').innerText = 'R$ ' + tout.toLocaleString('pt-BR');
             document.getElementById('d-total').innerText = 'R$ ' + (tin + initialBankTotal - tout).toLocaleString('pt-BR');
 
             document.getElementById('profile-img').src = state.pr.photo;
 
-            // Lista Bancos
+            // Listas
             const bL = document.getElementById('list-banks'); bL.innerHTML = '';
-            state.bn.forEach(b => bL.innerHTML += `<div class="bg-gray-800 p-3 rounded flex justify-between border-l-4 border-orange-500 text-[10px] uppercase font-bold"><span>${b.name} (AG:${b.ag} CC:${b.cc}) | SALDO INICIAL: R$ ${parseFloat(b.balance).toLocaleString('pt-BR')}</span><button onclick="state.bn=state.bn.filter(x=>x.id!==${b.id});save()">🗑️</button></div>`);
+            state.bn.forEach(b => bL.innerHTML += `<div class="bg-gray-800 p-3 rounded flex justify-between border-l-4 border-orange-500 text-[10px] uppercase font-bold"><span>${b.name} (Ag:${b.ag}) | SALDO INICIAL: R$ ${parseFloat(b.balance).toLocaleString('pt-BR')}</span><button onclick="state.bn=state.bn.filter(x=>x.id!==${b.id});save()">🗑️</button></div>`);
 
-            // Select Bancos nos Lançamentos
+            const cL = document.getElementById('list-cats'); cL.innerHTML = '';
+            state.ct.forEach((c, idx) => cL.innerHTML += `<span class="bg-gray-800 px-3 py-1 rounded-full text-[10px] border border-gray-700 font-bold uppercase flex items-center gap-2">${c} <button onclick="state.ct.splice(${idx}, 1);save()">×</button></span>`);
+
             const bS = document.getElementById('t-bank'); bS.innerHTML = '<option value="">Selecionar Conta...</option>';
             state.bn.forEach(b => bS.innerHTML += `<option value="${b.name}">${b.name}</option>`);
 
-            // Unifica Saldos Iniciais + Transações para Tabela e Timeline
             const virtualTxs = state.bn.map(b => ({ date: 'SALDO INICIAL', desc: `SALDO INICIAL: ${b.name}`, bank: b.name, value: b.balance, type: 'Receita', isVirtual: true }));
-            const combinedTxs = [...virtualTxs, ...state.tx].sort((a,b) => new Date(b.date) - new Date(a.date));
+            const combined = [...virtualTxs, ...state.tx].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            // Tabela
             const tb = document.getElementById('tx-table'); tb.innerHTML = '';
-            combinedTxs.forEach(t => tb.innerHTML += `<tr class="border-b border-gray-900"><td class="p-4">${t.date}</td><td class="p-4 font-bold">${t.desc}</td><td class="p-4 italic text-gray-500">${t.bank}</td><td class="p-4 text-right ${t.type==='Receita'?'text-green-500':'text-red-500'}">R$ ${parseFloat(t.value).toLocaleString('pt-BR')}</td><td class="p-4 text-center">${t.isVirtual ? '-' : `<button onclick="state.tx=state.tx.filter(x=>x.id!==${t.id});save()">🗑️</button>`}</td></tr>`);
+            combined.forEach(t => tb.innerHTML += `<tr class="border-b border-gray-900"><td>${t.date}</td><td class="p-4 font-bold">${t.desc}</td><td class="p-4 italic text-gray-500">${t.bank}</td><td class="p-4 text-right ${t.type==='Receita'?'text-green-500':'text-red-500'}">R$ ${parseFloat(t.value).toLocaleString('pt-BR')}</td><td class="p-4 text-center">${t.isVirtual?'-':`<button onclick="state.tx=state.tx.filter(x=>x.id!==${t.id});save()">🗑️</button>`}</td></tr>`);
 
-            // Timeline
             const tl = document.getElementById('tl-body'); tl.innerHTML = '';
-            combinedTxs.forEach(t => tl.innerHTML += `<div class="relative pl-10"><div class="absolute -left-[11px] top-0 w-5 h-5 rounded-full bg-black border-2 border-orange-500"></div><div class="bg-gray-900 p-4 rounded-xl flex justify-between border border-gray-800"><div><p class="text-[9px] text-gray-500 mb-1">${t.date}</p><p>${t.desc}</p></div><p class="${t.type==='Receita'?'text-green-500':'text-red-500'}">R$ ${parseFloat(t.value).toLocaleString('pt-BR')}</p></div></div>`);
+            combined.forEach(t => tl.innerHTML += `<div class="relative pl-10"><div class="absolute -left-[11px] top-0 w-5 h-5 rounded-full bg-black border-2 border-orange-500"></div><div class="bg-gray-900 p-4 rounded-xl flex justify-between border border-gray-800 font-bold uppercase"><div><p class="text-[9px] text-gray-500">${t.date}</p><p>${t.desc}</p></div><p class="${t.type==='Receita'?'text-green-500':'text-red-500'}">R$ ${parseFloat(t.value).toLocaleString('pt-BR')}</p></div></div>`);
 
-            // Cards Crédito
             const cG = document.getElementById('c-grid'); cG.innerHTML = '';
             state.cr.forEach(c => cG.innerHTML += `<div class="card border-l-4 border-orange-500 font-bold uppercase"><div class="flex justify-between mb-4"><span>${c.name}</span><button onclick="state.cr=state.cr.filter(x=>x.id!==${c.id});save()">🗑️</button></div><div class="w-full bg-gray-800 h-2 rounded-full mb-3 overflow-hidden"><div class="bg-orange-500 h-full" style="width:${Math.min((c.used/c.limit)*100, 100)}%"></div></div><div class="flex justify-between text-[9px] text-gray-500 mb-4"><span>LIMITE: R$ ${c.limit}</span><span>USADO: R$ ${c.used}</span></div><label class="dropzone block">📤 UPLOAD PDF INTER <input type="file" class="hidden" onchange="readPDF(event, ${c.id})"></label></div>`);
             
@@ -284,10 +330,10 @@
         function initCharts() {
             const ctxB = document.getElementById('chart-bar'); const ctxL = document.getElementById('chart-line');
             if(!ctxB) return; if(bC) bC.destroy(); if(lC) lC.destroy();
-            const initialTotal = state.bn.reduce((acc, b) => acc + parseFloat(b.balance || 0), 0);
+            const bal = state.bn.reduce((acc, b) => acc + parseFloat(b.balance || 0), 0);
             const tin = state.tx.filter(t => t.type === 'Receita').reduce((a,b) => a + parseFloat(b.value), 0);
             const tout = state.tx.filter(t => t.type === 'Despesa').reduce((a,b) => a + parseFloat(b.value), 0);
-            bC = new Chart(ctxB, { type: 'bar', data: { labels: ['Ganhos/Saldos', 'Gastos'], datasets: [{ data: [tin + initialTotal, tout], backgroundColor: ['#22c55e', '#ef4444'] }] }, options: { maintainAspectRatio: false } });
+            bC = new Chart(ctxB, { type: 'bar', data: { labels: ['Ganhos/Saldos', 'Gastos'], datasets: [{ data: [tin + bal, tout], backgroundColor: ['#22c55e', '#ef4444'] }] }, options: { maintainAspectRatio: false } });
             lC = new Chart(ctxL, { type: 'line', data: { labels: state.tx.slice(-5).map(t => t.date), datasets: [{ data: state.tx.slice(-5).map(t => t.value), borderColor: '#FF6600', tension: 0.4 }] }, options: { maintainAspectRatio: false } });
         }
 
@@ -296,15 +342,16 @@
             const rate = f === 'USD' ? state.mk.usd : (f === 'EUR' ? state.mk.eur : state.mk.btc);
             document.getElementById('cv-res').innerText = 'R$ ' + (v * rate).toLocaleString('pt-BR');
         }
+
         document.getElementById('cv-val').oninput = updateCv;
         document.getElementById('cv-from').onchange = updateCv;
-
         document.getElementById('img-input').onchange = function(e) {
             const r = new FileReader(); r.onload = () => { state.pr.photo = r.result; save(); }; r.readAsDataURL(e.target.files[0]);
         };
 
         window.onload = function() {
-            render(); initCharts();
+            render(); 
+            initCharts();
             fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL').then(r=>r.json()).then(d=>{
                 state.mk.usd = parseFloat(d.USDBRL.bid); state.mk.eur = parseFloat(d.EURBRL.bid); state.mk.btc = parseFloat(d.BTCBRL.bid);
                 document.getElementById('m-u').innerText = 'R$ ' + state.mk.usd.toFixed(2);
