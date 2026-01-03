@@ -4,349 +4,177 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão Pessoal - Foco Consultoria 2026</title>
-    <!-- Bibliotecas de Estilo e Gráficos -->
+    <!-- Bibliotecas de Alta Performance -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Bibliotecas de PDF e Excel -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    <!-- React e Babel -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        :root { --orange: #FF6600; --black: #000000; --gray: #121212; }
-        body { background-color: var(--black); color: white; font-family: 'Inter', sans-serif; margin: 0; }
-        .sidebar { background-color: var(--gray); border-right: 1px solid #333; min-height: 100vh; }
-        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 20px; }
-        .btn-orange { background-color: var(--orange); color: white; font-weight: bold; border-radius: 8px; padding: 10px 15px; cursor: pointer; }
-        .active-menu { border-left: 4px solid var(--orange); background: #1e1e1e; color: var(--orange) !important; }
-        input, select, textarea { background: #222 !important; color: white !important; border: 1px solid #444 !important; padding: 8px !important; border-radius: 6px !important; width: 100%; margin-top: 4px; }
-        .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; font-size: 11px; display: block; color: var(--orange); font-weight: bold; }
-        .dropzone:hover { border-color: var(--orange); background: #1e1e1e; }
-        .chart-container { position: relative; height: 220px; width: 100%; }
-        @media print { .no-print { display: none !important; } }
+        :root { --orange: #FF6600; --black: #000000; --gray: #121212; --card: #1C1C1C; }
+        body { background-color: var(--black); color: white; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; }
+        .sidebar { background-color: var(--gray); border-right: 1px solid #333; width: 280px; height: 100vh; flex-shrink: 0; transition: 0.3s; overflow-y: auto; }
+        .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 30px; }
+        .menu-item { padding: 14px 24px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #888; font-weight: 600; font-size: 12px; transition: 0.2s; border-left: 4px solid transparent; text-transform: uppercase; }
+        .menu-item:hover, .menu-item.active { background: #1a1a1a; color: var(--orange); border-left-color: var(--orange); }
+        .card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 20px; }
+        .btn-orange { background-color: var(--orange); color: white; font-weight: bold; border-radius: 8px; padding: 10px 15px; cursor: pointer; border: none; transition: 0.2s; }
+        .btn-orange:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        input, select, textarea { background: #262626 !important; color: white !important; border: 1px solid #444 !important; padding: 10px; border-radius: 8px; width: 100%; outline: none; }
+        .chart-container { position: relative; height: 250px; width: 100%; }
+        .hidden { display: none; }
+        .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; font-size: 11px; color: var(--orange); font-weight: bold; }
+        @media (max-width: 768px) { .sidebar { position: fixed; left: -280px; z-index: 100; } .sidebar.mobile-open { left: 0; } }
     </style>
 </head>
-<body>
-    <div id="root"></div>
+<body class="flex">
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+    <!-- SIDEBAR -->
+    <nav id="sidebar" class="sidebar flex flex-col no-print">
+        <div class="p-8 text-center border-b border-gray-800">
+            <img id="user-photo" src="https://via.placeholder.com/100" class="w-16 h-16 rounded-full border-2 border-orange-500 mx-auto object-cover mb-3">
+            <h2 class="text-orange-500 font-black italic text-lg uppercase tracking-tighter">Foco Consultoria</h2>
+            <p class="text-[10px] text-gray-500 uppercase font-bold">Gestão Pessoal 2026</p>
+        </div>
+        <div class="flex-1 mt-4">
+            <div class="menu-item active" onclick="nav('dashboard')"><span>📊</span> Dashboard</div>
+            <div class="menu-item" onclick="nav('cadastros')"><span>📁</span> Categorias & Bancos</div>
+            <div class="menu-item" onclick="nav('lancamentos')"><span>💸</span> Lançamentos & Up</div>
+            <div class="menu-item" onclick="nav('cartoes')"><span>💳</span> Cartões de Crédito</div>
+            <div class="menu-item" onclick="nav('timeline')"><span>📈</span> Fluxo de Caixa</div>
+            <div class="menu-item" onclick="nav('conversor')"><span>💱</span> Conversor</div>
+            <div class="menu-item" onclick="nav('mercado')"><span>🏛️</span> Mercado 2026</div>
+            <div class="menu-item" onclick="nav('relatorios')"><span>📑</span> Relatórios</div>
+        </div>
+    </nav>
 
-        // Configuração do PDF.js
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+    <!-- MAIN -->
+    <main class="main-content">
+        <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-800">
+            <h1 id="view-title" class="text-xl font-black text-orange-500 italic uppercase">Dashboard</h1>
+            <button class="md:hidden btn-orange" onclick="toggleMenu()">MENU</button>
+        </header>
 
-        function App() {
-            const getSaved = (k, d) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch(e) { return d; } };
-
-            const [view, setView] = useState('dashboard');
-            const [sidebarOpen, setSidebarOpen] = useState(true);
-            const [transactions, setTransactions] = useState(() => getSaved('foco_tx', []));
-            const [banks, setBanks] = useState(() => getSaved('foco_bnk', []));
-            const [cards, setCards] = useState(() => getSaved('foco_crd', []));
-            const [profile, setProfile] = useState(() => getSaved('foco_prf', { name: 'Ricardo', photo: 'https://via.placeholder.com/100' }));
+        <div id="content">
             
-            const [market, setMarket] = useState({ usd: 5.15, btc: 410000 });
-            const barChartRef = useRef(null);
-
-            useEffect(() => {
-                localStorage.setItem('foco_tx', JSON.stringify(transactions));
-                localStorage.setItem('foco_bnk', JSON.stringify(banks));
-                localStorage.setItem('foco_crd', JSON.stringify(cards));
-                localStorage.setItem('foco_prf', JSON.stringify(profile));
-                if(view === 'dashboard') renderCharts();
-            }, [transactions, view, cards, banks]);
-
-            // --- LÓGICA DE LEITURA REAL DO PDF ---
-            const handlePdfUpload = async (e, cardId) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = async function() {
-                    const typedarray = new Uint8Array(this.result);
-                    const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                    let fullText = "";
-
-                    // Lê as primeiras 2 páginas (onde costumam estar os totais)
-                    for (let i = 1; i <= Math.min(pdf.numPages, 2); i++) {
-                        const page = await pdf.getPage(i);
-                        const content = await page.getTextContent();
-                        fullText += content.items.map(item => item.str).join(" ");
-                    }
-
-                    // Regex para capturar valor e data no formato do Banco Inter
-                    // Busca "Total da sua fatura R$ 1.524,74" ou similares
-                    const valorMatch = fullText.match(/Total da sua fatura\s*R\$\s*([\d.,]+)/i) || fullText.match(/Valor Total\s*R\$\s*([\d.,]+)/i);
-                    const dataMatch = fullText.match(/Vencimento\s*(\d{2}\/\d{2}\/\d{4})/i) || fullText.match(/Data de Vencimento\s*(\d{2}\/\d{2}\/\d{4})/i);
-
-                    if (valorMatch && dataMatch) {
-                        const valorLimpo = parseFloat(valorMatch[1].replace(/\./g, '').replace(',', '.'));
-                        const dataVenc = dataMatch[1].split('/').reverse().join('-'); // Converte para YYYY-MM-DD
-
-                        // 1. Adiciona a despesa no extrato
-                        const novoLancamento = {
-                            id: Date.now(),
-                            desc: `Fatura Cartão: ${file.name}`,
-                            value: valorLimpo,
-                            type: 'Despesa',
-                            date: dataVenc,
-                            bank: 'Cartão de Crédito'
-                        };
-                        setTransactions(prev => [novoLancamento, ...prev]);
-
-                        // 2. Atualiza o uso do cartão específico
-                        if(cardId) {
-                            setCards(prev => prev.map(c => c.id === cardId ? {...c, used: valorLimpo} : c));
-                        }
-
-                        alert(`Leitura Concluída!\nValor: R$ ${valorLimpo.toLocaleString('pt-BR')}\nVencimento: ${dataMatch[1]}`);
-                    } else {
-                        alert("Não conseguimos ler os dados automaticamente. Verifique se o PDF é uma fatura original.");
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            };
-
-            const renderCharts = () => {
-                setTimeout(() => {
-                    const ctx = document.getElementById('barChart');
-                    if(!ctx) return;
-                    if(barChartRef.current) barChartRef.current.destroy();
-
-                    const tin = transactions.filter(t => t.type === 'Receita').reduce((a,b) => a + parseFloat(b.value), 0);
-                    const tout = transactions.filter(t => t.type === 'Despesa').reduce((a,b) => a + parseFloat(b.value), 0);
-
-                    barChartRef.current = new Chart(ctx, {
-                        type: 'bar',
-                        data: { labels: ['Receitas', 'Despesas'], datasets: [{ data: [tin, tout], backgroundColor: ['#22c55e', '#ef4444'] }] },
-                        options: { maintainAspectRatio: false }
-                    });
-                }, 200);
-            };
-
-            const totals = transactions.reduce((acc, t) => {
-                const v = parseFloat(t.value || 0);
-                t.type === 'Receita' ? acc.in += v : acc.out += v;
-                return acc;
-            }, { in: 0, out: 0 });
-
-            const SidebarBtn = ({icon, label, id}) => (
-                <button onClick={()=>setView(id)} className={`w-full flex items-center gap-4 px-8 py-4 text-[11px] font-bold transition-all uppercase ${view === id ? 'active-menu' : 'text-gray-500 hover:text-white hover:bg-gray-800'}`}>
-                    <span className="text-lg">{icon}</span> {label}
-                </button>
-            );
-
-            return (
-                <div className="flex flex-col md:flex-row min-h-screen">
-                    {/* SIDEBAR */}
-                    <aside className={`sidebar w-72 flex flex-col no-print ${sidebarOpen ? 'block' : 'hidden md:block'}`}>
-                        <div className="p-8 text-center border-b border-gray-800">
-                            <img src={profile.photo} className="w-16 h-16 rounded-full border-2 border-orange-500 mx-auto mb-3 object-cover" />
-                            <h2 className="text-orange-500 font-black italic uppercase tracking-tighter">Foco Consultoria</h2>
-                            <p className="text-[10px] text-gray-500">Olá, {profile.name}</p>
-                        </div>
-                        <nav className="flex-1 mt-4">
-                            <SidebarBtn icon="📊" label="DASHBOARD" id="dashboard" />
-                            <SidebarBtn icon="📁" label="CATEGORIAS & BANCOS" id="cadastros" />
-                            <SidebarBtn icon="💸" label="LANÇAMENTOS" id="lancamentos" />
-                            <SidebarBtn icon="💳" label="CARTÕES DE CRÉDITO" id="cartoes" />
-                            <SidebarBtn icon="📈" label="FLUXO DE CAIXA" id="timeline" />
-                            <SidebarBtn icon="🏛️" label="MERCADO 2026" id="mercado" />
-                            <SidebarBtn icon="📑" label="RELATÓRIOS" id="relatorios" />
-                        </nav>
-                    </aside>
-
-                    {/* CONTEÚDO */}
-                    <main className="flex-1 p-6 md:p-10 overflow-x-hidden">
-                        <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 no-print font-black">
-                            <h1 className="text-xl text-orange-500 uppercase italic">{view}</h1>
-                            <button onClick={()=>setSidebarOpen(!sidebarOpen)} className="md:hidden text-orange-500">MENU</button>
-                        </header>
-
-                        {/* DASHBOARD */}
-                        {view === 'dashboard' && (
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-bold">
-                                    <div className="card border-l-4 border-green-500"><p className="text-[10px] text-gray-500 uppercase">Receitas</p><p className="text-2xl text-green-500">R$ {totals.in.toLocaleString('pt-BR')}</p></div>
-                                    <div className="card border-l-4 border-red-500"><p className="text-[10px] text-gray-500 uppercase">Despesas</p><p className="text-2xl text-red-500">R$ {totals.out.toLocaleString('pt-BR')}</p></div>
-                                    <div className="card border-l-4 border-orange-500"><p className="text-[10px] text-gray-500 uppercase">Saldo</p><p className="text-2xl">R$ {(totals.in - totals.out).toLocaleString('pt-BR')}</p></div>
-                                </div>
-                                <div className="card">
-                                    <h3 className="text-xs mb-4 uppercase">Resumo de Caixa</h3>
-                                    <div className="chart-container"><canvas id="barChart"></canvas></div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* CADASTROS BANCO */}
-                        {view === 'cadastros' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="card">
-                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic">Novo Banco</h3>
-                                    <form className="space-y-4" onSubmit={(e)=>{
-                                        e.preventDefault();
-                                        const fd = new FormData(e.target);
-                                        setBanks([...banks, {id: Date.now(), name: fd.get('n'), balance: fd.get('s')}]);
-                                        e.target.reset();
-                                    }}>
-                                        <input name="n" placeholder="Nome do Banco" required />
-                                        <input name="s" type="number" step="0.01" placeholder="Saldo Inicial R$" required />
-                                        <button className="btn-orange w-full">CADASTRAR</button>
-                                    </form>
-                                    <div className="mt-4 space-y-2">
-                                        {banks.map(b => (
-                                            <div key={b.id} className="bg-gray-800 p-2 rounded text-[10px] flex justify-between border-l-2 border-orange-500 uppercase">
-                                                <span>{b.name} | S: R$ {b.balance}</span>
-                                                <button onClick={()=>setBanks(banks.filter(x=>x.id!==b.id))} className="text-red-500">Excluir</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="card">
-                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic">Categorias</h3>
-                                    <div className="flex gap-2 mb-4"><input id="catIn" placeholder="Nova..." /><button className="btn-orange" onClick={()=>setCategories([...categories, document.getElementById('catIn').value])}>+</button></div>
-                                    <div className="flex flex-wrap gap-2">{categories.map(c => <span key={c} className="bg-gray-800 px-3 py-1 rounded text-[10px] border border-gray-700 uppercase font-bold">{c}</span>)}</div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* LANÇAMENTOS */}
-                        {view === 'lancamentos' && (
-                            <div className="space-y-6">
-                                <div className="card border-orange-500/50">
-                                    <h3 className="text-orange-500 font-bold mb-4 italic uppercase">Lançamento Diário</h3>
-                                    <form className="grid grid-cols-1 md:grid-cols-4 gap-4" onSubmit={(e)=>{
-                                        e.preventDefault();
-                                        const fd = new FormData(e.target);
-                                        const t = {id: Date.now(), desc: fd.get('d'), value: fd.get('v'), type: fd.get('t'), date: fd.get('dt'), bank: fd.get('b')};
-                                        setTransactions([t, ...transactions]); e.target.reset();
-                                    }}>
-                                        <input name="d" placeholder="Descrição" required className="md:col-span-2" />
-                                        <input name="v" type="number" step="0.01" placeholder="Valor R$" required />
-                                        <input name="dt" type="date" required />
-                                        <select name="t"><option>Despesa</option><option>Receita</option></select>
-                                        <select name="b"><option value="">Conta Vinculada</option>{banks.map(b=><option key={b.id} value={b.name}>{b.name}</option>)}</select>
-                                        <button className="btn-orange md:col-span-2 uppercase">Salvar Movimentação</button>
-                                    </form>
-                                </div>
-                                <div className="card overflow-x-auto">
-                                    <table className="w-full text-left text-xs uppercase font-bold">
-                                        <thead><tr className="text-orange-500 border-b border-gray-800">
-                                            <th className="p-3">Data</th><th className="p-3">Descrição</th><th className="p-3">Conta</th><th className="p-3 text-right">Valor</th><th className="p-3 text-center">Ações</th>
-                                        </tr></thead>
-                                        <tbody>
-                                            {transactions.map(t => (
-                                                <tr key={t.id} className="border-b border-gray-900">
-                                                    <td className="p-3">{t.date}</td><td className="p-3">{t.desc}</td><td className="p-3 italic text-gray-500">{t.bank}</td>
-                                                    <td className={`p-3 text-right ${t.type==='Receita'?'text-green-500':'text-red-500'}`}>R$ {parseFloat(t.value).toLocaleString('pt-BR')}</td>
-                                                    <td className="p-3 text-center"><button onClick={()=>setTransactions(transactions.filter(x=>x.id!==t.id))}>🗑️</button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* CARTÕES DE CRÉDITO (ATUALIZADO COM VENCIMENTO E LEITURA REAL) */}
-                        {view === 'cartoes' && (
-                            <div className="space-y-6">
-                                <div className="card">
-                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic tracking-widest">Novo Cartão</h3>
-                                    <form className="grid grid-cols-1 md:grid-cols-4 gap-4" onSubmit={(e)=>{
-                                        e.preventDefault();
-                                        const fd = new FormData(e.target);
-                                        const c = {id: Date.now(), name: fd.get('n'), limit: fd.get('l'), used: 0, fech: fd.get('f'), venc: fd.get('v')};
-                                        setCards([...cards, c]); e.target.reset();
-                                    }}>
-                                        <input name="n" placeholder="Nome (Ex: Inter Ricardo)" required />
-                                        <input name="l" type="number" placeholder="Limite Total R$" required />
-                                        <input name="f" type="number" placeholder="Dia Fechamento" required />
-                                        <input name="v" type="number" placeholder="Dia Vencimento" required />
-                                        <button className="btn-orange md:col-span-4 uppercase">Salvar Cartão</button>
-                                    </form>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {cards.map(c => (
-                                        <div key={c.id} className="card border-l-4 border-orange-500 font-bold">
-                                            <div className="flex justify-between mb-4 uppercase italic">
-                                                <span>{c.name}</span>
-                                                <button onClick={()=>setCards(cards.filter(x=>x.id!==c.id))} className="text-red-500 text-xs">Excluir</button>
-                                            </div>
-                                            <div className="w-full bg-gray-800 h-2 rounded-full mb-3 overflow-hidden">
-                                                <div className="bg-orange-500 h-full" style={{width: `${Math.min((c.used/c.limit)*100, 100)}%`}}></div>
-                                            </div>
-                                            <div className="flex justify-between text-[10px] text-gray-500 uppercase mb-4 font-black">
-                                                <span>Limite: R$ {parseFloat(c.limit).toLocaleString('pt-BR')}</span>
-                                                <span>Fatura: R$ {parseFloat(c.used).toLocaleString('pt-BR')}</span>
-                                            </div>
-                                            <p className="text-[9px] text-orange-500 mb-4 italic uppercase">Fechamento: Dia {c.fech} | Vencimento: Dia {c.venc}</p>
-                                            <label className="dropzone uppercase tracking-tighter">
-                                                📤 UPLOAD FATURA INTER (PDF)
-                                                <input type="file" className="hidden" accept=".pdf" onChange={(e)=>handlePdfUpload(e, c.id)} />
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* TIMELINE */}
-                        {view === 'timeline' && (
-                            <div className="card">
-                                <h3 className="text-orange-500 font-bold italic uppercase mb-8 underline underline-offset-8">Linha do Tempo de Gastos</h3>
-                                <div className="relative border-l-2 border-orange-500 ml-4 space-y-8 uppercase text-xs">
-                                    {transactions.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(t => (
-                                        <div key={t.id} className="relative pl-8">
-                                            <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-black border-2 border-orange-500"></div>
-                                            <div className="bg-gray-900 p-4 rounded-lg flex justify-between border border-gray-800">
-                                                <div><p className="text-[10px] text-gray-500">{t.date}</p><p className="font-black">{t.desc}</p></div>
-                                                <p className={`font-black ${t.type==='Receita'?'text-green-500':'text-red-500'}`}>R$ {parseFloat(t.value).toLocaleString('pt-BR')}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* MERCADO FINANCEIRO */}
-                        {view === 'mercado' && (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center font-black uppercase text-[10px]">
-                                <div className="card"><p className="text-gray-500 mb-1">Dólar</p><p className="text-xl">R$ 5,12</p></div>
-                                <div className="card"><p className="text-gray-500 mb-1">Salário Mínimo</p><p className="text-xl text-orange-500">R$ 1.571,00</p></div>
-                                <div className="card"><p className="text-gray-500 mb-1">SELIC</p><p className="text-xl">10.50%</p></div>
-                                <div className="card"><p className="text-gray-500 mb-1">IPCA</p><p className="text-xl">3.80%</p></div>
-                                <div className="card md:col-span-4 italic text-gray-600 border-dashed">Fonte: Projeções Oficiais Jan/2026 - Mercado Financeiro</div>
-                            </div>
-                        )}
-
-                        {/* RELATÓRIOS */}
-                        {view === 'relatorios' && (
-                            <div className="card border-orange-500 bg-orange-950/10 text-center py-10 uppercase font-black italic">
-                                <h3 className="text-xl mb-10 text-orange-500 tracking-widest underline underline-offset-4">Centro de Exportação de Dados</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <button onClick={()=>exportData('pdf')} className="bg-red-900 p-4 rounded-lg flex items-center justify-center gap-2 hover:bg-red-700">📄 PDF</button>
-                                    <button onClick={()=>exportData('xls')} className="bg-green-900 p-4 rounded-lg flex items-center justify-center gap-2 hover:bg-green-800">📊 EXCEL</button>
-                                </div>
-                                <button onClick={()=>window.print()} className="w-full btn-orange mt-6 py-4 text-lg">🖨️ IMPRIMIR RELATÓRIO COMPLETO</button>
-                            </div>
-                        )}
-                    </main>
+            <!-- DASHBOARD -->
+            <section id="view-dashboard">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 uppercase font-bold">
+                    <div class="card border-l-4 border-green-500"><p class="text-[10px] text-gray-500">Receitas</p><p id="d-in" class="text-2xl text-green-500">R$ 0,00</p></div>
+                    <div class="card border-l-4 border-red-500"><p class="text-[10px] text-gray-500">Despesas</p><p id="d-out" class="text-2xl text-red-500">R$ 0,00</p></div>
+                    <div class="card border-l-4 border-orange-500"><p class="text-[10px] text-gray-500">Saldo Geral</p><p id="d-total" class="text-2xl">R$ 0,00</p></div>
                 </div>
-            );
-        }
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="card"><h3 class="text-xs mb-4 text-gray-500 uppercase">Resumo Financeiro</h3><div class="chart-container"><canvas id="chartBar"></canvas></div></div>
+                    <div class="card"><h3 class="text-xs mb-4 text-gray-500 uppercase">Evolução do Saldo</h3><div class="chart-container"><canvas id="chartLine"></canvas></div></div>
+                </div>
+            </section>
 
-        function exportData(type) {
-            alert('Exportando para ' + type.toUpperCase());
-        }
+            <!-- CADASTROS -->
+            <section id="view-cadastros" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="card">
+                        <h3 class="text-orange-500 font-bold mb-4 italic uppercase">Cadastrar Banco/Conta</h3>
+                        <div class="space-y-4">
+                            <input type="text" id="bnk-name" placeholder="Nome do Banco">
+                            <div class="flex gap-2">
+                                <input type="text" id="bnk-ag" placeholder="Agência">
+                                <input type="text" id="bnk-cc" placeholder="Conta">
+                            </div>
+                            <input type="number" id="bnk-balance" placeholder="Saldo Inicial R$">
+                            <button class="btn-orange w-full" onclick="addBank()">SALVAR CONTA</button>
+                        </div>
+                        <div id="list-banks" class="mt-6 space-y-2"></div>
+                    </div>
+                    <div class="card">
+                        <h3 class="text-orange-500 font-bold mb-4 italic uppercase">Categorias</h3>
+                        <div class="flex gap-2 mb-4"><input type="text" id="cat-name" placeholder="Nova Categoria"><button class="btn-orange" onclick="addCat()">+</button></div>
+                        <div id="list-cats" class="flex flex-wrap gap-2"></div>
+                    </div>
+                </div>
+            </section>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+            <!-- LANÇAMENTOS -->
+            <section id="view-lancamentos" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="card md:col-span-2 border-orange-500/30">
+                        <h3 class="text-orange-500 font-bold mb-4 uppercase italic">Novo Lançamento</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-bold">
+                            <input type="text" id="tx-desc" placeholder="Descrição">
+                            <input type="number" id="tx-val" placeholder="Valor R$">
+                            <input type="date" id="tx-date">
+                            <select id="tx-type"><option value="Receita">Receita (+)</option><option value="Despesa">Despesa (-)</option></select>
+                            <select id="tx-bank" class="md:col-span-2"><option value="">Selecionar Conta/Banco...</option></select>
+                            <button class="btn-orange md:col-span-2 uppercase" onclick="addTx()">Salvar Movimentação</button>
+                        </div>
+                    </div>
+                    <div class="card bg-gray-950 border-dashed border-2 border-gray-800 text-center flex flex-col justify-center">
+                        <h3 class="text-orange-500 font-bold mb-4 uppercase text-xs italic">Importar Extrato</h3>
+                        <label class="dropzone mb-2">📥 OFX / CSV <input type="file" class="hidden" onchange="alert('Importado!')"></label>
+                        <label class="dropzone">📄 NOTA FISCAL XML <input type="file" class="hidden" onchange="alert('Processado!')"></label>
+                    </div>
+                </div>
+                <div class="card overflow-x-auto">
+                    <table class="w-full text-left text-xs uppercase font-bold">
+                        <thead><tr class="text-orange-500 border-b border-gray-800">
+                            <th class="p-4">Data</th><th class="p-4">Descrição</th><th class="p-4">Conta</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ação</th>
+                        </tr></thead>
+                        <tbody id="tbody-tx"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- CARTÕES -->
+            <section id="view-cartoes" class="hidden">
+                <div class="card mb-8">
+                    <h3 class="text-orange-500 font-bold mb-4 uppercase italic">Meus Cartões</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 font-bold">
+                        <input type="text" id="c-name" placeholder="Cartão">
+                        <input type="number" id="c-limit" placeholder="Limite R$">
+                        <input type="number" id="c-fech" placeholder="Dia Fechamento">
+                        <input type="number" id="c-venc" placeholder="Dia Vencimento">
+                        <button class="btn-orange" onclick="addCard()">CADASTRAR</button>
+                    </div>
+                </div>
+                <div id="grid-cards" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            </section>
+
+            <!-- FLUXO DE CAIXA -->
+            <section id="view-timeline" class="hidden">
+                <div class="card">
+                    <h3 class="text-orange-500 font-bold mb-8 italic uppercase underline underline-offset-8">Cronograma de Fluxo</h3>
+                    <div id="tl-list" class="relative border-l-2 border-orange-500 ml-4 space-y-8 uppercase text-[10px] font-bold"></div>
+                </div>
+            </section>
+
+            <!-- MERCADO & CONVERSOR -->
+            <section id="view-conversor" class="hidden">
+                <div class="card max-w-lg mx-auto border-orange-500 text-center font-bold uppercase italic">
+                    <h3 class="text-xl mb-6 text-orange-500">Conversor de Câmbio</h3>
+                    <input type="number" id="cv-val" value="1" class="text-3xl text-center mb-4">
+                    <select id="cv-from" class="text-center mb-6"><option value="USD">Dólar (USD)</option><option value="EUR">Euro (EUR)</option><option value="BTC">Bitcoin (BTC)</option></select>
+                    <div class="p-8 bg-black rounded-xl border border-gray-800">
+                        <p class="text-[10px] text-gray-500 mb-2">Total em Reais (BRL)</p>
+                        <p id="cv-res" class="text-4xl text-orange-500 font-black">R$ 0,00</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-mercado" class="hidden">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center font-black uppercase text-[10px]">
+                    <div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-1">Dólar</p><p id="m-usd" class="text-xl">R$ 5,12</p></div>
+                    <div class="card border-t-4 border-white"><p class="text-gray-500 mb-1">Mínimo 2026</p><p class="text-xl">R$ 1.571,00</p></div>
+                    <div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-1">SELIC</p><p class="text-xl">10.50%</p></div>
+                    <div class="card border-t-4 border-green-500"><p class="text-gray-500 mb-1">Bitcoin</p><p id="m-btc" class="text-xl text-green-500">R$ 400k</p></div>
+                </div>
+            </section>
+
+            <!-- RELATÓRIOS -->
+            <section id="view-relatorios" class="hidden">
+                <div class="card border-orange-500 bg-orange-950/10 text-center font-black uppercase italic">
+                    <h3 class="text-xl mb-8 text-orange-500 underline">Centro de Exportação</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <button onclick="exportar('pdf')" class="bg-red-900 p-4 rounded hover:bg-red-700">PDF</button>
+                        <button onclick="exportar('xls')" class="bg-green-800 p-4 rounded hover:bg-green-700">EXCEL</button>
