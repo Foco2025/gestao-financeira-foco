@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão Pessoal - Foco Consultoria 2026</title>
-    <!-- Bibliotecas Necessárias -->
+    <!-- Carregamento Seguro de Bibliotecas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -23,7 +23,6 @@
         .active-menu { border-left: 4px solid var(--orange); background: #1e1e1e; color: var(--orange) !important; }
         input, select, textarea { background: #222 !important; color: white !important; border: 1px solid #444 !important; padding: 8px !important; border-radius: 6px !important; width: 100%; margin-top: 4px; }
         .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; font-size: 11px; display: block; }
-        .dropzone:hover { border-color: var(--orange); background: #1e1e1e; }
         .chart-container { position: relative; height: 220px; width: 100%; }
         @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
     </style>
@@ -35,89 +34,98 @@
         const { useState, useEffect, useRef } = React;
 
         function App() {
-            // --- INICIALIZAÇÃO SEGURA ---
-            const getSaved = (k, d) => { try { const s = localStorage.getItem(k); return s ? JSON.parse(s) : d; } catch(e) { return d; } };
-
+            // --- ESTADOS E PERSISTÊNCIA ---
             const [view, setView] = useState('dashboard');
             const [sidebarOpen, setSidebarOpen] = useState(true);
-            const [transactions, setTransactions] = useState(() => getSaved('foco_trans', []));
-            const [categories, setCategories] = useState(() => getSaved('foco_cats', ['Moradia', 'Salário', 'Mercado', 'Lazer']));
-            const [banks, setBanks] = useState(() => getSaved('foco_banks', [{id: 1, name: 'Nubank', agency: '0001', account: '12345-6', balance: '0'}]));
-            const [cards, setCards] = useState(() => getSaved('foco_cards', [{id: 1, name: 'Visa Foco', limit: 5000, used: 0}]));
-            const [profile, setProfile] = useState(() => getSaved('foco_profile', { name: 'Usuário Foco', photo: 'https://via.placeholder.com/100' }));
             
+            const [transactions, setTransactions] = useState(() => {
+                const s = localStorage.getItem('foco_trans');
+                return s ? JSON.parse(s) : [];
+            });
+            const [categories, setCategories] = useState(() => {
+                const s = localStorage.getItem('foco_cats');
+                return s ? JSON.parse(s) : ['Moradia', 'Salário', 'Lazer'];
+            });
+            const [banks, setBanks] = useState(() => {
+                const s = localStorage.getItem('foco_banks');
+                return s ? JSON.parse(s) : [{id: 1, name: 'Banco Exemplo', agency: '0001', account: '123-4', balance: 0}];
+            });
+            const [cards, setCards] = useState(() => {
+                const s = localStorage.getItem('foco_cards');
+                return s ? JSON.parse(s) : [{id: 1, name: 'Cartão Master', limit: 5000, used: 0}];
+            });
+            const [profile, setProfile] = useState(() => {
+                const s = localStorage.getItem('foco_profile');
+                return s ? JSON.parse(s) : { name: 'Usuário Foco', photo: 'https://via.placeholder.com/100' };
+            });
+
             const [editTrans, setEditTrans] = useState(null);
             const [editCard, setEditCard] = useState(null);
             const [editBank, setEditBank] = useState(null);
-
-            const [market, setMarket] = useState({ usd: 5.10, eur: 5.50, btc: 400000, selic: '10.50%', minWage: '1.571,00' });
+            const [market, setMarket] = useState({ usd: 5.20, eur: 5.60, btc: 420000, selic: '10.50%', minWage: '1.571,00' });
             const [convAmount, setConvAmount] = useState(1);
             const [convFrom, setConvFrom] = useState('USD');
 
             const barChartRef = useRef(null);
             const lineChartRef = useRef(null);
 
-            // --- PERSISTÊNCIA ---
             useEffect(() => {
                 localStorage.setItem('foco_trans', JSON.stringify(transactions));
                 localStorage.setItem('foco_cats', JSON.stringify(categories));
                 localStorage.setItem('foco_banks', JSON.stringify(banks));
                 localStorage.setItem('foco_cards', JSON.stringify(cards));
                 localStorage.setItem('foco_profile', JSON.stringify(profile));
-                if(view === 'dashboard') renderCharts();
+                if (view === 'dashboard') initCharts();
             }, [transactions, view, cards, banks, profile]);
 
-            // --- API MOEDAS ---
             useEffect(() => {
                 fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL')
                     .then(r => r.json()).then(data => {
-                        setMarket(p => ({...p, usd: parseFloat(data.USDBRL.bid), eur: parseFloat(data.EURBRL.bid), btc: parseFloat(data.BTCBRL.bid)}));
+                        setMarket(p => ({...p, usd: data.USDBRL.bid, eur: data.EURBRL.bid, btc: data.BTCBRL.bid}));
                     }).catch(() => null);
             }, []);
 
-            // --- GRÁFICOS ---
-            const renderCharts = () => {
+            const initCharts = () => {
                 setTimeout(() => {
-                    const ctxB = document.getElementById('barChart');
-                    const ctxL = document.getElementById('lineChart');
-                    if(!ctxB || !ctxL) return;
-                    if(barChartRef.current) barChartRef.current.destroy();
-                    if(lineChartRef.current) lineChartRef.current.destroy();
+                    const cb = document.getElementById('barChart');
+                    const cl = document.getElementById('lineChart');
+                    if (!cb || !cl) return;
+                    if (barChartRef.current) barChartRef.current.destroy();
+                    if (lineChartRef.current) lineChartRef.current.destroy();
 
                     const totals = transactions.reduce((acc, t) => {
                         t.type === 'Receita' ? acc.in += parseFloat(t.value) : acc.out += parseFloat(t.value);
                         return acc;
                     }, { in: 0, out: 0 });
 
-                    barChartRef.current = new Chart(ctxB, {
+                    barChartRef.current = new Chart(cb, {
                         type: 'bar',
-                        data: { labels: ['Entradas', 'Saídas'], datasets: [{ data: [totals.in, totals.out], backgroundColor: ['#22c55e', '#ef4444'] }] },
+                        data: { labels: ['Receitas', 'Despesas'], datasets: [{ data: [totals.in, totals.out], backgroundColor: ['#22c55e', '#ef4444'] }] },
                         options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
                     });
 
-                    lineChartRef.current = new Chart(ctxL, {
+                    lineChartRef.current = new Chart(cl, {
                         type: 'line',
-                        data: { labels: transactions.slice(-5).map(t => t.date), datasets: [{ label: 'Histórico', data: transactions.slice(-5).map(t => t.value), borderColor: '#FF6600', tension: 0.3 }] },
+                        data: { labels: transactions.slice(-5).map(t => t.date), datasets: [{ label: 'Saldo', data: transactions.slice(-5).map(t => t.value), borderColor: '#FF6600', tension: 0.3 }] },
                         options: { maintainAspectRatio: false }
                     });
-                }, 200);
+                }, 100);
             };
 
-            // --- EXPORTAÇÕES ---
-            const exportData = (type) => {
-                if(type === 'pdf') {
+            const exportFile = (ext) => {
+                if (ext === 'pdf') {
                     const doc = new jspdf.jsPDF();
                     doc.text("EXTRATO - FOCO CONSULTORIA", 14, 15);
-                    doc.autoTable({ head: [['Data', 'Desc', 'Conta', 'Valor']], body: transactions.map(t => [t.date, t.desc, t.bank, t.value]) });
+                    doc.autoTable({ head: [['Data', 'Descrição', 'Conta', 'Valor']], body: transactions.map(t => [t.date, t.desc, t.bank, t.value]) });
                     doc.save("Extrato_Foco.pdf");
-                } else if(type === 'xls') {
+                } else if (ext === 'xls') {
                     const ws = XLSX.utils.json_to_sheet(transactions);
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, ws, "Dados");
                     XLSX.writeFile(wb, "Gestao_Foco.xlsx");
                 } else {
                     const blob = new Blob([JSON.stringify(transactions)], {type: 'text/plain'});
-                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Dados.${type}`; a.click();
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `Dados.${ext}`; a.click();
                 }
             };
 
@@ -148,33 +156,33 @@
                         </nav>
                     </aside>
 
-                    {/* MAIN */}
+                    {/* CONTEÚDO */}
                     <main className="flex-1 p-6 md:p-10 overflow-x-hidden">
-                        <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 no-print font-black">
-                            <h1 className="text-xl text-orange-500 uppercase italic tracking-tighter">{view}</h1>
-                            <button onClick={()=>setSidebarOpen(!sidebarOpen)} className="md:hidden text-orange-500">MENU</button>
+                        <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 no-print">
+                            <h1 className="text-xl text-orange-500 font-black italic uppercase tracking-tighter">{view}</h1>
+                            <button onClick={()=>setSidebarOpen(!sidebarOpen)} className="md:hidden text-orange-500 font-bold">MENU</button>
                         </header>
 
                         {/* DASHBOARD */}
                         {view === 'dashboard' && (
                             <div className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-bold">
-                                    <div className="card border-l-4 border-green-500"><p className="text-[10px] text-gray-500">RECEITAS</p><p className="text-2xl text-green-500">R$ {totals.in.toLocaleString('pt-BR')}</p></div>
-                                    <div className="card border-l-4 border-red-500"><p className="text-[10px] text-gray-500">DESPESAS</p><p className="text-2xl text-red-500">R$ {totals.out.toLocaleString('pt-BR')}</p></div>
-                                    <div className="card border-l-4 border-orange-500"><p className="text-[10px] text-gray-500">SALDO</p><p className="text-2xl">R$ {(totals.in - totals.out).toLocaleString('pt-BR')}</p></div>
+                                    <div className="card border-l-4 border-green-500"><p className="text-[10px] text-gray-500">ENTRADAS</p><p className="text-2xl text-green-500">R$ {totals.in.toLocaleString('pt-BR')}</p></div>
+                                    <div className="card border-l-4 border-red-500"><p className="text-[10px] text-gray-500">SAÍDAS</p><p className="text-2xl text-red-500">R$ {totals.out.toLocaleString('pt-BR')}</p></div>
+                                    <div className="card border-l-4 border-orange-500"><p className="text-[10px] text-gray-500">SALDO LÍQUIDO</p><p className="text-2xl">R$ {(totals.in - totals.out).toLocaleString('pt-BR')}</p></div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="card"><h3 className="text-xs mb-4 uppercase">Balanço</h3><div className="chart-container"><canvas id="barChart"></canvas></div></div>
-                                    <div className="card"><h3 className="text-xs mb-4 uppercase">Evolução</h3><div className="chart-container"><canvas id="lineChart"></canvas></div></div>
+                                    <div className="card"><h3 className="text-xs mb-4 uppercase">Comparativo</h3><div className="chart-container"><canvas id="barChart"></canvas></div></div>
+                                    <div className="card"><h3 className="text-xs mb-4 uppercase">Evolução Diária</h3><div className="chart-container"><canvas id="lineChart"></canvas></div></div>
                                 </div>
                             </div>
                         )}
 
-                        {/* CADASTROS (CORRIGIDO: SALDO INICIAL NO BANCO) */}
+                        {/* CADASTROS COM SALDO INICIAL */}
                         {view === 'cadastros' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="card">
-                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic">{editBank ? 'Editar' : 'Novo'} Banco</h3>
+                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic">Bancos e Contas</h3>
                                     <form className="space-y-4" onSubmit={(e)=>{
                                         e.preventDefault();
                                         const fd = new FormData(e.target);
@@ -189,8 +197,8 @@
                                     </form>
                                     <div className="mt-4 space-y-2">
                                         {banks.map(b => (
-                                            <div key={b.id} className="bg-gray-800 p-2 rounded text-[10px] flex justify-between border-l-2 border-orange-500">
-                                                <span>{b.name} (Ag: {b.agency} Cc: {b.account}) | Saldo: R$ {b.balance}</span>
+                                            <div key={b.id} className="bg-gray-800 p-2 rounded text-[10px] flex justify-between">
+                                                <span>{b.name} (Ag:{b.agency} Cc:{b.account}) | R$ {b.balance}</span>
                                                 <div className="flex gap-2"><button onClick={()=>setEditBank(b)}>✏️</button><button onClick={()=>setBanks(banks.filter(x=>x.id!==b.id))}>🗑️</button></div>
                                             </div>
                                         ))}
@@ -198,18 +206,18 @@
                                 </div>
                                 <div className="card">
                                     <h3 className="text-orange-500 font-bold mb-4 uppercase italic">Categorias</h3>
-                                    <div className="flex gap-2 mb-4"><input id="catIn" placeholder="Nova..." /><button className="btn-orange" onClick={()=>setCategories([...categories, document.getElementById('catIn').value])}>+</button></div>
-                                    <div className="flex flex-wrap gap-2">{categories.map(c => <span key={c} className="bg-gray-800 px-3 py-1 rounded text-[10px] border border-gray-700">{c}</span>)}</div>
+                                    <div className="flex gap-2 mb-4"><input id="catIn" placeholder="Nova..." className="text-xs" /><button className="btn-orange" onClick={()=>setCategories([...categories, document.getElementById('catIn').value])}>+</button></div>
+                                    <div className="flex flex-wrap gap-2">{categories.map(c => <span key={c} className="bg-gray-800 px-3 py-1 rounded text-[10px]">{c}</span>)}</div>
                                 </div>
                             </div>
                         )}
 
-                        {/* LANÇAMENTOS (CORRIGIDO: SELEÇÃO DE CONTA VOLTOU) */}
+                        {/* LANÇAMENTOS COM SELEÇÃO DE CONTA */}
                         {view === 'lancamentos' && (
                             <div className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="card border-orange-500/50">
-                                        <h3 className="text-orange-500 font-bold mb-4 italic uppercase">Lançar</h3>
+                                        <h3 className="text-orange-500 font-bold mb-4 italic uppercase text-xs">Adicionar Lançamento</h3>
                                         <form className="space-y-3" onSubmit={(e)=>{
                                             e.preventDefault();
                                             const fd = new FormData(e.target);
@@ -222,44 +230,5 @@
                                             <div className="flex gap-2">
                                                 <select name="t" className="w-1/2" defaultValue={editTrans?.type}><option>Despesa</option><option>Receita</option></select>
                                                 <select name="b" className="w-1/2" defaultValue={editTrans?.bank}>
-                                                    <option value="">Selecionar Conta</option>
+                                                    <option value="">Conta Vinculada</option>
                                                     {banks.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
-                                                </select>
-                                            </div>
-                                            <button className="btn-orange w-full uppercase">Salvar</button>
-                                        </form>
-                                    </div>
-                                    <div className="card bg-gray-900 border-dashed border-2 border-gray-700 text-center uppercase">
-                                        <h3 className="text-orange-500 font-bold mb-4 italic">Uploads</h3>
-                                        <div className="space-y-3">
-                                            <label className="dropzone">📥 EXTRATO BANCÁRIO <input type="file" className="hidden" onChange={()=>alert('OFX Importado!')} /></label>
-                                            <label className="dropzone">📄 NOTA FISCAL XML <input type="file" className="hidden" onChange={()=>alert('XML Importado!')} /></label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="card overflow-x-auto">
-                                    <table className="w-full text-left text-xs">
-                                        <thead className="text-orange-500 border-b border-gray-800 uppercase"><tr><th className="p-3">Data</th><th className="p-3">Descrição</th><th className="p-3">Conta</th><th className="p-3 text-right">Valor</th><th className="p-3 text-center">Ações</th></tr></thead>
-                                        <tbody>
-                                            {transactions.map(t => (
-                                                <tr key={t.id} className="border-b border-gray-900">
-                                                    <td className="p-3">{t.date}</td><td className="p-3 font-bold uppercase">{t.desc}</td><td className="p-3 italic text-gray-500">{t.bank}</td>
-                                                    <td className={`p-3 text-right font-black ${t.type==='Receita'?'text-green-500':'text-red-500'}`}>R$ {parseFloat(t.value).toLocaleString('pt-BR')}</td>
-                                                    <td className="p-3 text-center flex justify-center gap-2"><button onClick={()=>setEditTrans(t)}>✏️</button><button onClick={()=>setTransactions(transactions.filter(x=>x.id!==t.id))}>🗑️</button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* CARTÕES */}
-                        {view === 'cartoes' && (
-                            <div className="space-y-6">
-                                <div className="card">
-                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic">Cartões</h3>
-                                    <form className="grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={(e)=>{
-                                        e.preventDefault();
-                                        const fd = new FormData(e.target);
-                                        const c = {id: editCard ? editCard.id : Date.now(), name: fd.get('n'), limit: fd.get('l'), used: fd.get('u') || 0}
