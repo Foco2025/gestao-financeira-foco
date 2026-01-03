@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão Pessoal - Foco Consultoria 2026 (FINAL v1.0)</title>
+    <title>Gestão Pessoal - Foco Consultoria 2026</title>
+    <!-- Bibliotecas Externas -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -14,16 +15,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
     <style>
-        :root { --orange: #FF6600; --black: #000000; --gray: #111111; }
-        body { background-color: var(--black); color: white; font-family: 'Inter', sans-serif; }
+        :root { --orange: #FF6600; --black: #000000; --gray: #121212; }
+        body { background-color: var(--black); color: white; font-family: 'Inter', sans-serif; margin: 0; }
         .sidebar { background-color: var(--gray); border-right: 1px solid #333; min-height: 100vh; }
-        .card { background: #181818; border: 1px solid #333; border-radius: 12px; padding: 20px; }
-        .btn-orange { background-color: var(--orange); color: white; font-weight: bold; border-radius: 8px; padding: 10px 15px; cursor: pointer; text-align: center; }
+        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 20px; }
+        .btn-orange { background-color: var(--orange); color: white; font-weight: bold; border-radius: 8px; padding: 10px 15px; cursor: pointer; border: none; }
         .active-menu { border-left: 4px solid var(--orange); background: #1e1e1e; color: var(--orange) !important; }
         input, select, textarea { background: #222 !important; color: white !important; border: 1px solid #444 !important; padding: 8px !important; border-radius: 6px !important; width: 100%; }
-        .chart-container { position: relative; height: 250px; width: 100%; }
-        .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 10px; transition: 0.3s; }
+        .chart-container { position: relative; height: 220px; width: 100%; }
+        .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 10px; }
         .dropzone:hover { border-color: var(--orange); background: #1a1a1a; }
+        @media print { .no-print { display: none !important; } .print-only { display: block !important; } body { background: white; color: black; } }
     </style>
 </head>
 <body>
@@ -33,18 +35,21 @@
         const { useState, useEffect, useRef } = React;
 
         function App() {
+            // --- ESTADOS ---
             const [view, setView] = useState('dashboard');
+            const [sidebarOpen, setSidebarOpen] = useState(true);
             const [transactions, setTransactions] = useState(JSON.parse(localStorage.getItem('foco_trans')) || []);
-            const [categories, setCategories] = useState(JSON.parse(localStorage.getItem('foco_cats')) || ['Moradia', 'Alimentação', 'Saúde', 'Lazer', 'Investimentos']);
+            const [categories, setCategories] = useState(JSON.parse(localStorage.getItem('foco_cats')) || ['Moradia', 'Alimentação', 'Saúde', 'Lazer', 'Salário', 'Investimentos']);
             const [banks, setBanks] = useState(JSON.parse(localStorage.getItem('foco_banks')) || [{id: 1, name: 'Nubank', agency: '0001', account: '12345-6'}]);
-            const [cards, setCards] = useState(JSON.parse(localStorage.getItem('foco_cards')) || [{id: 1, name: 'Mastercard Black', limit: 5000, used: 1200}]);
-            const [profile, setProfile] = useState(JSON.parse(localStorage.getItem('foco_profile')) || { name: 'Consultor Foco', photo: 'https://via.placeholder.com/100' });
+            const [cards, setCards] = useState(JSON.parse(localStorage.getItem('foco_cards')) || [{id: 1, name: 'Visa Gold', limit: 5000, used: 800}]);
+            const [profile, setProfile] = useState(JSON.parse(localStorage.getItem('foco_profile')) || { name: 'Usuário Foco', photo: 'https://via.placeholder.com/100' });
             
-            // CRUD States
+            // CRUD
             const [editTrans, setEditTrans] = useState(null);
             const [editCard, setEditCard] = useState(null);
-            
-            // Mercado Financeiro Real-Time
+            const [editBank, setEditBank] = useState(null);
+
+            // Mercado 2026
             const [market, setMarket] = useState({ usd: 5.15, eur: 5.58, btc: 410000, selic: '10.50%', ipca: '3.80%', minWage: '1.571,00' });
             const [convAmount, setConvAmount] = useState(1);
             const [convFrom, setConvFrom] = useState('USD');
@@ -52,6 +57,7 @@
             const barChartRef = useRef(null);
             const lineChartRef = useRef(null);
 
+            // --- PERSISTÊNCIA ---
             useEffect(() => {
                 localStorage.setItem('foco_trans', JSON.stringify(transactions));
                 localStorage.setItem('foco_cats', JSON.stringify(categories));
@@ -59,7 +65,7 @@
                 localStorage.setItem('foco_cards', JSON.stringify(cards));
                 localStorage.setItem('foco_profile', JSON.stringify(profile));
                 if(view === 'dashboard') renderCharts();
-            }, [transactions, view, cards]);
+            }, [transactions, view, cards, banks]);
 
             useEffect(() => {
                 fetch('https://economia.awesomeapi.com.br/last/USD-BRL,EUR-BRL,BTC-BRL')
@@ -70,9 +76,10 @@
                             eur: parseFloat(data.EURBRL.bid),
                             btc: parseFloat(data.BTCBRL.bid)
                         }));
-                    });
+                    }).catch(() => console.log("Erro ao carregar moedas"));
             }, []);
 
+            // --- GRÁFICOS ---
             const renderCharts = () => {
                 setTimeout(() => {
                     const ctxBar = document.getElementById('barChart');
@@ -98,36 +105,49 @@
                     lineChartRef.current = new Chart(ctxLine, {
                         type: 'line',
                         data: {
-                            labels: transactions.slice(-7).map(t => t.date),
-                            datasets: [{ label: 'Histórico de Lançamentos', data: transactions.slice(-7).map(t => t.value), borderColor: '#FF6600', tension: 0.4 }]
+                            labels: transactions.slice(-5).map(t => t.date),
+                            datasets: [{ label: 'Histórico', data: transactions.slice(-5).map(t => t.value), borderColor: '#FF6600', tension: 0.4 }]
                         },
                         options: { maintainAspectRatio: false }
                     });
-                }, 100);
+                }, 200);
             };
 
-            const handleFileUpload = (e, msg) => {
-                if(e.target.files[0]) alert(`Arquivo "${e.target.files[0].name}" processado! ${msg}`);
+            // --- EXPORTAÇÕES ---
+            const exportXLS = () => {
+                const ws = XLSX.utils.json_to_sheet(transactions);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Dados");
+                XLSX.writeFile(wb, "Relatorio_Foco.xlsx");
             };
 
-            const saveTrans = (e) => {
-                e.preventDefault();
-                const fd = new FormData(e.target);
-                const item = { id: editTrans ? editTrans.id : Date.now(), desc: fd.get('d'), value: fd.get('v'), type: fd.get('t'), date: fd.get('dt'), bank: fd.get('b') };
-                if(editTrans) setTransactions(transactions.map(t => t.id === editTrans.id ? item : t));
-                else setTransactions([item, ...transactions]);
-                setEditTrans(null);
-                e.target.reset();
+            const exportPDF = () => {
+                const doc = new jspdf.jsPDF();
+                doc.text("EXTRATO FOCO CONSULTORIA", 14, 15);
+                const tableData = transactions.map(t => [t.date, t.desc, t.type, t.value]);
+                doc.autoTable({ head: [['Data', 'Descrição', 'Tipo', 'Valor']], body: tableData, startY: 20 });
+                doc.save("Extrato_Foco.pdf");
             };
 
-            const saveCard = (e) => {
-                e.preventDefault();
-                const fd = new FormData(e.target);
-                const item = { id: editCard ? editCard.id : Date.now(), name: fd.get('n'), limit: fd.get('l'), used: fd.get('u') || 0 };
-                if(editCard) setCards(cards.map(c => c.id === editCard.id ? item : c));
-                else setCards([...cards, item]);
-                setEditCard(null);
-                e.target.reset();
+            const exportTXT = () => {
+                let content = "RELATÓRIO FINANCEIRO\n\n";
+                transactions.forEach(t => content += `${t.date} | ${t.desc} | ${t.type} | R$ ${t.value}\n`);
+                const blob = new Blob([content], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = "Relatorio.txt";
+                link.click();
+            };
+
+            const exportXML = () => {
+                let xml = '<?xml version="1.0" encoding="UTF-8"?><extrato>';
+                transactions.forEach(t => xml += `<item><data>${t.date}</data><desc>${t.desc}</desc><valor>${t.value}</valor></item>`);
+                xml += '</extrato>';
+                const blob = new Blob([xml], { type: 'application/xml' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = "Extrato.xml";
+                link.click();
             };
 
             const totals = transactions.reduce((acc, t) => {
@@ -139,185 +159,80 @@
             return (
                 <div className="flex flex-col md:flex-row min-h-screen">
                     {/* SIDEBAR */}
-                    <aside className="sidebar w-72 flex flex-col hidden md:flex">
+                    <aside className={`sidebar w-72 flex flex-col no-print ${sidebarOpen ? 'block' : 'hidden md:block'}`}>
                         <div className="p-8 text-center border-b border-gray-800">
                             <img src={profile.photo} className="w-16 h-16 rounded-full border-2 border-orange-500 mx-auto mb-3 object-cover" />
                             <h2 className="text-orange-500 font-black italic">FOCO CONSULTORIA</h2>
-                            <p className="text-[10px] text-gray-500 uppercase">{profile.name} - 2026</p>
+                            <p className="text-[10px] text-gray-500 uppercase">{profile.name}</p>
                         </div>
-                        <nav className="flex-1 mt-4">
+                        <nav className="flex-1 mt-4 overflow-y-auto">
                             <SidebarBtn icon="📊" label="DASHBOARD" onClick={()=>setView('dashboard')} active={view==='dashboard'} />
                             <SidebarBtn icon="📁" label="CADASTROS & BANCOS" onClick={()=>setView('cadastros')} active={view==='cadastros'} />
-                            <SidebarBtn icon="💸" label="LANÇAMENTOS & UPLOADS" onClick={()=>setView('lancamentos')} active={view==='lancamentos'} />
+                            <SidebarBtn icon="💸" label="LANÇAMENTOS & UP" onClick={()=>setView('lancamentos')} active={view==='lancamentos'} />
                             <SidebarBtn icon="💳" label="CARTÕES DE CRÉDITO" onClick={()=>setView('cartoes')} active={view==='cartoes'} />
                             <SidebarBtn icon="📈" label="FLUXO DE CAIXA" onClick={()=>setView('timeline')} active={view==='timeline'} />
                             <SidebarBtn icon="💱" label="CONVERSOR" onClick={()=>setView('conversor')} active={view==='conversor'} />
                             <SidebarBtn icon="🏛️" label="MERCADO 2026" onClick={()=>setView('mercado')} active={view==='mercado'} />
+                            <SidebarBtn icon="📑" label="RELATÓRIOS" onClick={()=>setView('relatorios')} active={view==='relatorios'} />
                         </nav>
                     </aside>
 
-                    {/* MAIN */}
+                    {/* CONTEÚDO */}
                     <main className="flex-1 p-6 md:p-10 overflow-x-hidden">
-                        <header className="flex justify-between items-center mb-8 pb-4 border-b border-gray-800 uppercase italic">
-                            <h1 className="text-xl font-black text-orange-500">{view}</h1>
-                            <button onClick={()=>window.print()} className="bg-gray-800 px-3 py-1 rounded text-xs">🖨️ IMPRIMIR</button>
+                        <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4 no-print uppercase italic font-black">
+                            <h1 className="text-xl text-orange-500">{view}</h1>
+                            <button onClick={()=>setSidebarOpen(!sidebarOpen)} className="md:hidden text-orange-500">MENU</button>
+                            <span className="text-[10px] text-gray-500">SYNC: GOOGLE ATIVO</span>
                         </header>
 
-                        {/* DASHBOARD */}
+                        {/* VIEW: DASHBOARD */}
                         {view === 'dashboard' && (
-                            <div className="space-y-6 animate-fadeIn">
+                            <div className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div className="card border-l-4 border-green-500">
-                                        <p className="text-xs text-gray-500 font-bold">RECEITAS</p>
+                                        <p className="text-[10px] text-gray-500">RECEITAS</p>
                                         <p className="text-2xl font-black text-green-500">R$ {totals.in.toLocaleString('pt-BR')}</p>
                                     </div>
                                     <div className="card border-l-4 border-red-500">
-                                        <p className="text-xs text-gray-500 font-bold">DESPESAS</p>
+                                        <p className="text-[10px] text-gray-500">DESPESAS</p>
                                         <p className="text-2xl font-black text-red-500">R$ {totals.out.toLocaleString('pt-BR')}</p>
                                     </div>
                                     <div className="card border-l-4 border-orange-500">
-                                        <p className="text-xs text-gray-500 font-bold">SALDO LÍQUIDO</p>
-                                        <p className="text-2xl font-black">R$ {(totals.in - totals.out).toLocaleString('pt-BR')}</p>
+                                        <p className="text-[10px] text-gray-500">SALDO</p>
+                                        <p className="text-2xl font-black text-white">R$ {(totals.in - totals.out).toLocaleString('pt-BR')}</p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="card">
-                                        <h3 className="text-xs font-bold mb-4">BALANÇO</h3>
+                                        <h3 className="text-xs font-bold mb-4 uppercase">Balanço</h3>
                                         <div className="chart-container"><canvas id="barChart"></canvas></div>
                                     </div>
                                     <div className="card">
-                                        <h3 className="text-xs font-bold mb-4">EVOLUÇÃO</h3>
+                                        <h3 className="text-xs font-bold mb-4 uppercase">Evolução</h3>
                                         <div className="chart-container"><canvas id="lineChart"></canvas></div>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* LANÇAMENTOS COM UPLOADS */}
-                        {view === 'lancamentos' && (
-                            <div className="space-y-6 animate-fadeIn">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="card border-orange-500/50">
-                                        <h3 className="text-orange-500 font-bold mb-4 italic">LANÇAMENTO MANUAL</h3>
-                                        <form className="space-y-4" onSubmit={saveTrans}>
-                                            <input name="d" defaultValue={editTrans?.desc} placeholder="Descrição" required />
-                                            <div className="flex gap-2">
-                                                <input name="v" defaultValue={editTrans?.value} type="number" step="0.01" placeholder="Valor R$" required />
-                                                <input name="dt" defaultValue={editTrans?.date} type="date" required />
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <select name="t" defaultValue={editTrans?.type}><option>Despesa</option><option>Receita</option></select>
-                                                <select name="b" defaultValue={editTrans?.bank}>{banks.map(b => <option key={b.id}>{b.name}</option>)}</select>
-                                            </div>
-                                            <button className="btn-orange w-full">{editTrans ? 'ATUALIZAR' : 'SALVAR'}</button>
-                                        </form>
-                                    </div>
-                                    <div className="card bg-gray-900 border-dashed border-2 border-gray-700 text-center">
-                                        <h3 className="text-orange-500 font-bold mb-4 italic">IMPORTAÇÃO (OFX, XML, CSV)</h3>
-                                        <div className="space-y-4">
-                                            <label className="dropzone block">📥 SUBIR EXTRATO BANCO (OFX/CSV) <input type="file" className="hidden" onChange={(e)=>handleFileUpload(e, 'Lançamentos gerados.')} /></label>
-                                            <label className="dropzone block">📄 SUBIR NOTA FISCAL (XML) <input type="file" className="hidden" onChange={(e)=>handleFileUpload(e, 'Despesa registrada.')} /></label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="card overflow-x-auto">
-                                    <table className="w-full text-left text-xs">
-                                        <thead><tr className="border-b border-gray-800 text-orange-500 uppercase"><th className="p-3">Data</th><th className="p-3">Descrição</th><th className="p-3 text-right">Valor</th><th className="p-3 text-center">Ações</th></tr></thead>
-                                        <tbody>
-                                            {transactions.map(t => (
-                                                <tr key={t.id} className="border-b border-gray-900">
-                                                    <td className="p-3">{t.date}</td>
-                                                    <td className="p-3 font-bold">{t.desc}</td>
-                                                    <td className={`p-3 text-right font-black ${t.type==='Receita'?'text-green-500':'text-red-500'}`}>R$ {parseFloat(t.value).toLocaleString('pt-BR')}</td>
-                                                    <td className="p-3 text-center flex justify-center gap-2">
-                                                        <button onClick={()=>setEditTrans(t)}>✏️</button>
-                                                        <button onClick={()=>setTransactions(transactions.filter(x=>x.id!==t.id))}>🗑️</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* CARTÕES DE CRÉDITO (CRUD COMPLETO + UPLOAD PDF) */}
-                        {view === 'cartoes' && (
-                            <div className="space-y-6 animate-fadeIn">
-                                <div className="card">
-                                    <h3 className="text-orange-500 font-bold mb-4 italic uppercase">{editCard ? 'EDITAR CARTÃO' : 'CADASTRAR NOVO CARTÃO'}</h3>
-                                    <form className="grid grid-cols-1 md:grid-cols-4 gap-4" onSubmit={saveCard}>
-                                        <input name="n" defaultValue={editCard?.name} placeholder="Nome do Cartão" required />
-                                        <input name="l" defaultValue={editCard?.limit} type="number" placeholder="Limite Total R$" required />
-                                        <input name="u" defaultValue={editCard?.used} type="number" placeholder="Uso Atual R$ (Opcional)" />
-                                        <button className="btn-orange uppercase">{editCard ? 'ATUALIZAR' : 'CADASTRAR'}</button>
-                                    </form>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {cards.map(c => (
-                                        <div key={c.id} className="card bg-gray-900 border-l-4 border-orange-500 relative">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <h4 className="font-black italic uppercase text-sm">{c.name}</h4>
-                                                <div className="flex gap-2">
-                                                    <button onClick={()=>setEditCard(c)} className="text-xs text-blue-400">EDITAR</button>
-                                                    <button onClick={()=>setCards(cards.filter(x=>x.id!==c.id))} className="text-xs text-red-500">EXCLUIR</button>
-                                                </div>
-                                            </div>
-                                            <div className="w-full bg-gray-800 h-2 rounded-full mb-3 overflow-hidden">
-                                                <div className="bg-orange-500 h-full" style={{width: `${(c.used/c.limit)*100}%`}}></div>
-                                            </div>
-                                            <div className="flex justify-between text-[10px] text-gray-500 uppercase mb-4 font-bold">
-                                                <span>Limite: R$ {c.limit}</span>
-                                                <span>Usado: R$ {c.used}</span>
-                                            </div>
-                                            <label className="dropzone block font-bold text-orange-500">
-                                                📤 SUBIR FATURA PDF <input type="file" accept=".pdf" className="hidden" onChange={(e)=>handleFileUpload(e, 'Fatura do cartão importada.')} />
-                                            </label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* CADASTROS (BANCOS COM AG/CC) */}
+                        {/* VIEW: CADASTROS (BANCOS COM AG/CC) */}
                         {view === 'cadastros' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="card">
-                                    <h3 className="text-orange-500 font-bold mb-4 italic uppercase">Contas Bancárias</h3>
-                                    <form className="space-y-3" onSubmit={(e)=>{
+                                    <h3 className="text-orange-500 font-bold mb-4 uppercase italic">{editBank ? 'Editar Banco' : 'Novo Banco'}</h3>
+                                    <form className="space-y-4" onSubmit={(e)=>{
                                         e.preventDefault();
                                         const fd = new FormData(e.target);
-                                        setBanks([...banks, {id:Date.now(), name:fd.get('n'), agency:fd.get('a'), account:fd.get('c')}]);
-                                        e.target.reset();
+                                        const b = {id: editBank ? editBank.id : Date.now(), name: fd.get('n'), agency: fd.get('a'), account: fd.get('c')};
+                                        if(editBank) setBanks(banks.map(x=>x.id===editBank.id ? b : x));
+                                        else setBanks([...banks, b]);
+                                        setEditBank(null); e.target.reset();
                                     }}>
-                                        <input name="n" placeholder="Nome do Banco" required />
-                                        <div className="flex gap-2"><input name="a" placeholder="Agência" required /><input name="c" placeholder="Conta" required /></div>
-                                        <button className="btn-orange w-full">ADICIONAR</button>
+                                        <input name="n" defaultValue={editBank?.name} placeholder="Nome do Banco" required />
+                                        <div className="flex gap-2">
+                                            <input name="a" defaultValue={editBank?.agency} placeholder="Agência" required />
+                                            <input name="c" defaultValue={editBank?.account} placeholder="Conta" required />
+                                        </div>
+                                        <button className="btn-orange w-full">SALVAR BANCO</button>
                                     </form>
-                                    <div className="mt-4 space-y-2">
-                                        {banks.map(b => (
-                                            <div key={b.id} className="bg-gray-800 p-2 rounded text-[10px] flex justify-between border-l-2 border-orange-500">
-                                                <span>{b.name} | AG: {b.agency} | CC: {b.account}</span>
-                                                <button onClick={()=>setBanks(banks.filter(x=>x.id!==b.id))} className="text-red-500">EXCLUIR</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="card">
-                                    <h3 className="text-orange-500 font-bold mb-4 italic uppercase">Categorias</h3>
-                                    <div className="flex gap-2 mb-4">
-                                        <input id="catIn" placeholder="Nova Categoria" /><button className="btn-orange" onClick={()=>setCategories([...categories, document.getElementById('catIn').value])}>+</button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">{categories.map(c => <span key={c} className="bg-gray-900 px-3 py-1 rounded text-[10px] border border-gray-700">{c}</span>)}</div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* FLUXO DE CAIXA */}
-                        {view === 'timeline' && (
-                            <div className="card animate-fadeIn">
-                                <h3 className="text-orange-500 font-bold italic uppercase mb-8">Cronograma de Fluxo</h3>
-                                <div className="relative border-l-2 border-orange-500 ml-4 space-y-8">
-                                    {transactions.map(t => (
-                                        <div key={t.id} className="relative pl-8">
-                                            <div className="absolute -left-[9px
+                                    <div className="mt-6 space-y-2">
