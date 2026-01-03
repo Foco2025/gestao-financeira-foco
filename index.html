@@ -1,1 +1,258 @@
-<!DOCTYPE html><html lang="pt-br"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Gestão Pessoal - Foco Consultoria</title>    <script src="https://cdn.tailwindcss.com"></script>    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>    <style>        :root { --foco-orange: #FF6600; --foco-black: #1A1A1A; }        body { background-color: #000; color: white; font-family: sans-serif; }        .bg-foco-black { background-color: var(--foco-black); }        .text-foco-orange { color: var(--foco-orange); }        .bg-foco-orange { background-color: var(--foco-orange); }        .card { background: #262626; border-radius: 12px; padding: 20px; }    </style></head><body>    <div id="root"></div>    <script type="text/javascript">        const { useState, useEffect } = React;        function App() {            const [transactions, setTransactions] = useState(JSON.parse(localStorage.getItem('foco_data')) || []);            const [view, setView] = useState('dashboard');            useEffect(() => {                localStorage.setItem('foco_data', JSON.stringify(transactions));            }, [transactions]);            const exportToExcel = () => {                const ws = XLSX.utils.json_to_sheet(transactions);                const wb = XLSX.utils.book_new();                XLSX.utils.book_append_sheet(wb, ws, "Lancamentos");                XLSX.writeFile(wb, "Gestao_Foco_Consultoria.xlsx");            };            const totals = transactions.reduce((acc, t) => {                const val = parseFloat(t.value || 0);                t.type === 'Receita' ? acc.in += val : acc.out += val;                return acc;            }, { in: 0, out: 0 });            return (                <div className="min-h-screen flex flex-col md:flex-row">                    {/* Sidebar */}                    <nav className="w-full md:w-64 bg-foco-black p-6 flex flex-col gap-4 border-r border-gray-800">                        <div className="mb-8 text-center">                            <h2 className="text-foco-orange font-bold text-xl">FOCO CONSULTORIA</h2>                            <p className="text-xs text-gray-400">Gestão Pessoal</p>                        </div>                        <button onClick={() => setView('dashboard')} className={`p-3 rounded text-left ${view === 'dashboard' ? 'bg-foco-orange' : 'hover:bg-gray-800'}`}>📊 Dashboard</button>                        <button onClick={() => setView('lancamentos')} className={`p-3 rounded text-left ${view === 'lancamentos' ? 'bg-foco-orange' : 'hover:bg-gray-800'}`}>💸 Lançamentos</button>                        <button onClick={exportToExcel} className="p-3 rounded text-left bg-green-700 hover:bg-green-600 mt-auto font-bold">📥 Exportar Excel</button>                    </nav>                    {/* Content */}                    <main className="flex-1 p-4 md:p-8 bg-black overflow-y-auto">                        {view === 'dashboard' ? (                            <div className="space-y-6">                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">                                    <div className="card border-b-4 border-green-500">                                        <p className="text-gray-400 text-sm">Receitas Totais</p>                                        <p className="text-3xl font-bold text-green-500 font-mono">R$ {totals.in.toLocaleString()}</p>                                    </div>                                    <div className="card border-b-4 border-red-500">                                        <p className="text-gray-400 text-sm">Despesas Totais</p>                                        <p className="text-3xl font-bold text-red-500 font-mono">R$ {totals.out.toLocaleString()}</p>                                    </div>                                    <div className="card border-b-4 border-foco-orange">                                        <p className="text-gray-400 text-sm">Saldo em Conta</p>                                        <p className="text-3xl font-bold text-white font-mono">R$ {(totals.in - totals.out).toLocaleString()}</p>                                    </div>                                </div>                                <div className="card bg-foco-black border border-foco-orange">                                    <h3 className="font-bold text-foco-orange mb-2">💡 Dica da Consultoria</h3>                                    <p className="text-sm">                                        {(totals.in - totals.out) < 0 ?                                         "Seu saldo está negativo! Revise seus custos variáveis imediatamente." :                                         "Saldo positivo! Ótimo momento para aplicar na SELIC (11,75%)."}                                    </p>                                </div>                            </div>                        ) : (                            <div className="card">                                <h2 className="text-xl font-bold mb-4">Novo Lançamento</h2>                                <form className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 text-black" onSubmit={(e) => {                                    e.preventDefault();                                    const d = new FormData(e.target);                                    setTransactions([...transactions, {                                        id: Date.now(),                                        desc: d.get('desc'),                                        value: d.get('val'),                                        type: d.get('type'),                                        date: d.get('date')                                    }]);                                    e.target.reset();                                }}>                                    <input name="desc" placeholder="Descrição" className="p-2 rounded" required />                                    <input name="val" type="number" placeholder="Valor" className="p-2 rounded" required />                                    <select name="type" className="p-2 rounded"><option>Despesa</option><option>Receita</option></select>                                    <input name="date" type="date" className="p-2 rounded" required />                                    <button className="bg-foco-orange text-white font-bold p-2 rounded col-span-1 md:col-span-4 mt-2">Salvar</button>                                </form>                                <div className="overflow-x-auto">                                    <table className="w-full text-sm">                                        <thead><tr className="border-b border-gray-700 text-foco-orange">                                            <th className="p-2 text-left">Data</th><th className="p-2 text-left">Descrição</th><th className="p-2 text-right">Valor</th><th className="p-2">Ação</th>                                        </tr></thead>                                        <tbody>                                            {transactions.map(t => (                                                <tr key={t.id} className="border-b border-gray-800">                                                    <td className="p-2">{t.date}</td><td className="p-2">{t.desc}</td>                                                    <td className={`p-2 text-right font-bold ${t.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>R$ {t.value}</td>                                                    <td className="p-2 text-center"><button onClick={() => setTransactions(transactions.filter(x => x.id !== t.id))}>🗑️</button></td>                                                </tr>                                            ))}                                        </tbody>                                    </table>                                </div>                            </div>                        )}                    </main>                </div>            );        }        const root = ReactDOM.createRoot(document.getElementById('root'));        root.render(<App />);    </script></body></html>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão Pessoal - Foco Consultoria</title>
+    <!-- Bibliotecas Externas -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel para traduzir o código em tempo real -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        :root { --foco-orange: #FF6600; --foco-black: #1A1A1A; }
+        body { background-color: #000; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .bg-foco-black { background-color: var(--foco-black); }
+        .text-foco-orange { color: var(--foco-orange); }
+        .bg-foco-orange { background-color: var(--foco-orange); }
+        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; border: 1px solid #333; }
+        input, select { color: black !important; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- Importante: o type aqui deve ser text/babel -->
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [transactions, setTransactions] = useState(() => {
+                const saved = localStorage.getItem('foco_data');
+                return saved ? JSON.parse(saved) : [];
+            });
+            const [view, setView] = useState('dashboard');
+            const [sidebarOpen, setSidebarOpen] = useState(true);
+
+            useEffect(() => {
+                localStorage.setItem('foco_data', JSON.stringify(transactions));
+            }, [transactions]);
+
+            const exportToExcel = () => {
+                const ws = XLSX.utils.json_to_sheet(transactions);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Lançamentos");
+                XLSX.writeFile(wb, "Gestao_Foco_Consultoria.xlsx");
+            };
+
+            const totals = transactions.reduce((acc, t) => {
+                const val = parseFloat(t.value || 0);
+                t.type === 'Receita' ? acc.in += val : acc.out += val;
+                return acc;
+            }, { in: 0, out: 0 });
+
+            const deleteItem = (id) => {
+                if(confirm("Deseja excluir este lançamento?")) {
+                    setTransactions(transactions.filter(t => t.id !== id));
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row">
+                    {/* Sidebar Responsiva */}
+                    <nav className={`${sidebarOpen ? 'flex' : 'hidden'} md:flex w-full md:w-64 bg-foco-black p-6 flex-col gap-4 border-r border-gray-800`}>
+                        <div className="mb-8 text-center">
+                            <div className="w-16 h-16 bg-white rounded-full mx-auto mb-2 flex items-center justify-center text-black font-bold text-xs uppercase p-2 text-center">
+                                Logo Foco
+                            </div>
+                            <h2 className="text-foco-orange font-bold text-lg">FOCO CONSULTORIA</h2>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-widest">Gestão Pessoal</p>
+                        </div>
+                        
+                        <button onClick={() => setView('dashboard')} className={`p-3 rounded text-left flex items-center gap-2 ${view === 'dashboard' ? 'bg-foco-orange text-white' : 'hover:bg-gray-800 text-gray-300'}`}>
+                            <span>📊</span> Dashboard
+                        </button>
+                        <button onClick={() => setView('lancamentos')} className={`p-3 rounded text-left flex items-center gap-2 ${view === 'lancamentos' ? 'bg-foco-orange text-white' : 'hover:bg-gray-800 text-gray-300'}`}>
+                            <span>💸</span> Lançamentos
+                        </button>
+                        <button onClick={() => setView('timeline')} className={`p-3 rounded text-left flex items-center gap-2 ${view === 'timeline' ? 'bg-foco-orange text-white' : 'hover:bg-gray-800 text-gray-300'}`}>
+                            <span>📈</span> Fluxo de Caixa
+                        </button>
+                        
+                        <div className="mt-auto pt-4 border-t border-gray-800">
+                            <button onClick={exportToExcel} className="w-full p-3 rounded bg-green-700 hover:bg-green-600 text-white font-bold text-sm flex items-center justify-center gap-2">
+                                📥 Exportar Excel
+                            </button>
+                        </div>
+                    </nav>
+
+                    {/* Botão para fechar/abrir menu no mobile */}
+                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="md:hidden bg-foco-orange p-2 text-white font-bold text-center">
+                        {sidebarOpen ? 'Fechar Menu' : 'Abrir Menu'}
+                    </button>
+
+                    {/* Conteúdo Principal */}
+                    <main className="flex-1 p-4 md:p-8 bg-black overflow-y-auto">
+                        <header className="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+                            <h1 className="text-xl font-light">Bem-vindo, <span className="font-bold text-foco-orange text-2xl">Usuário</span></h1>
+                            <div className="text-right hidden sm:block">
+                                <p className="text-[10px] text-gray-500 uppercase">Mercado Financeiro</p>
+                                <p className="text-xs font-mono text-green-500">USD: R$ 5,15 | SELIC: 11,75%</p>
+                            </div>
+                        </header>
+
+                        {view === 'dashboard' && (
+                            <div className="animate-fadeIn">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                    <div className="card border-l-4 border-green-500">
+                                        <p className="text-gray-400 text-xs uppercase mb-1">Total Receitas</p>
+                                        <p className="text-3xl font-bold text-green-500">R$ {totals.in.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                                    </div>
+                                    <div className="card border-l-4 border-red-500">
+                                        <p className="text-gray-400 text-xs uppercase mb-1">Total Despesas</p>
+                                        <p className="text-3xl font-bold text-red-500">R$ {totals.out.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                                    </div>
+                                    <div className="card border-l-4 border-foco-orange">
+                                        <p className="text-gray-400 text-xs uppercase mb-1">Saldo Líquido</p>
+                                        <p className="text-3xl font-bold text-white">R$ {(totals.in - totals.out).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</p>
+                                    </div>
+                                </div>
+
+                                <div className="card bg-foco-black border border-gray-700">
+                                    <h3 className="font-bold text-foco-orange mb-3 flex items-center gap-2">
+                                        <span>💡</span> Dica da Consultoria Foco
+                                    </h3>
+                                    <div className="p-4 bg-gray-900 rounded-lg">
+                                        {(totals.in - totals.out) < 0 ? (
+                                            <p className="text-red-400">⚠️ <span className="font-bold underline">Cuidado:</span> Suas despesas superaram suas receitas este mês. Sugerimos revisar seus custos fixos e evitar gastos no cartão de crédito.</p>
+                                        ) : (
+                                            <p className="text-green-400">✅ <span className="font-bold underline">Parabéns:</span> Você está com saldo positivo. Considere investir o excedente na Selic para aproveitar os 11,75% ao ano.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'lancamentos' && (
+                            <div className="card animate-fadeIn">
+                                <h2 className="text-xl font-bold mb-6 text-foco-orange">Novo Lançamento</h2>
+                                <form className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-10" onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const d = new FormData(e.target);
+                                    const novo = {
+                                        id: Date.now(),
+                                        desc: d.get('desc'),
+                                        value: d.get('val'),
+                                        type: d.get('type'),
+                                        date: d.get('date'),
+                                        status: d.get('status')
+                                    };
+                                    setTransactions([novo, ...transactions]);
+                                    e.target.reset();
+                                }}>
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-gray-400 mb-1">Descrição</label>
+                                        <input name="desc" className="p-2 rounded bg-white text-black" placeholder="Ex: Aluguel" required />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-gray-400 mb-1">Valor (R$)</label>
+                                        <input name="val" type="number" step="0.01" className="p-2 rounded bg-white text-black" placeholder="0.00" required />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-gray-400 mb-1">Tipo</label>
+                                        <select name="type" className="p-2 rounded bg-white text-black">
+                                            <option value="Despesa">Despesa</option>
+                                            <option value="Receita">Receita</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-gray-400 mb-1">Vencimento</label>
+                                        <input name="date" type="date" className="p-2 rounded bg-white text-black" required />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-xs text-gray-400 mb-1">Status</label>
+                                        <select name="status" className="p-2 rounded bg-white text-black">
+                                            <option value="Realizado">Pago / Recebido</option>
+                                            <option value="Previsto">Agendado (Previsto)</option>
+                                        </select>
+                                    </div>
+                                    <button className="bg-foco-orange text-white font-bold p-2 rounded self-end md:col-span-3 hover:brightness-110 transition-all">
+                                        + ADICIONAR LANÇAMENTO
+                                    </button>
+                                </form>
+
+                                <div className="overflow-x-auto mt-4">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-gray-800">
+                                            <tr>
+                                                <th className="p-3 text-xs uppercase text-gray-400">Data</th>
+                                                <th className="p-3 text-xs uppercase text-gray-400">Descrição</th>
+                                                <th className="p-3 text-xs uppercase text-gray-400">Status</th>
+                                                <th className="p-3 text-xs uppercase text-gray-400 text-right">Valor</th>
+                                                <th className="p-3 text-xs uppercase text-gray-400 text-center">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transactions.length === 0 && (
+                                                <tr><td colSpan="5" className="p-10 text-center text-gray-600 italic">Nenhum registro encontrado.</td></tr>
+                                            )}
+                                            {transactions.map(t => (
+                                                <tr key={t.id} className="border-b border-gray-800 hover:bg-gray-900 transition-colors">
+                                                    <td className="p-3 text-sm">{new Date(t.date).toLocaleDateString('pt-BR')}</td>
+                                                    <td className="p-3 font-medium">{t.desc}</td>
+                                                    <td className="p-3">
+                                                        <span className={`text-[9px] px-2 py-1 rounded-full font-bold uppercase ${t.status === 'Realizado' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`}>
+                                                            {t.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className={`p-3 text-right font-bold ${t.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>
+                                                        R$ {parseFloat(t.value).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                                    </td>
+                                                    <td className="p-3 text-center">
+                                                        <button onClick={() => deleteItem(t.id)} className="text-gray-500 hover:text-red-500 transition-colors text-xl">🗑️</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {view === 'timeline' && (
+                            <div className="card animate-fadeIn">
+                                <h2 className="text-xl font-bold mb-4 text-foco-orange">Linha do Tempo de Fluxo de Caixa</h2>
+                                <p className="text-sm text-gray-500 mb-8 font-light italic">Visualize a ordem cronológica das suas movimentações financeiras.</p>
+                                
+                                <div className="relative border-l-2 border-gray-800 ml-4 space-y-8 pb-4">
+                                    {transactions.sort((a,b) => new Date(a.date) - new Date(b.date)).map(t => (
+                                        <div key={t.id} className="relative pl-8">
+                                            <div className={`absolute -left-[9px] top-0 w-4 h-4 rounded-full ${t.type === 'Receita' ? 'bg-green-500' : 'bg-red-500'} border-4 border-black`}></div>
+                                            <div className="bg-gray-900 p-4 rounded-lg border border-gray-800 flex justify-between items-center">
+                                                <div>
+                                                    <p className="text-[10px] text-gray-500 uppercase font-bold">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                                                    <p className="font-bold text-white uppercase text-sm">{t.desc}</p>
+                                                    <p className="text-[10px] text-gray-400">{t.status}</p>
+                                                </div>
+                                                <div className={`text-lg font-mono font-bold ${t.type === 'Receita' ? 'text-green-500' : 'text-red-500'}`}>
+                                                    {t.type === 'Receita' ? '+' : '-'} R$ {parseFloat(t.value).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
