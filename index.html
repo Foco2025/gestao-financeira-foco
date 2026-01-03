@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestão Pessoal - Foco Consultoria 2026</title>
     
-    <!-- Bibliotecas Externas -->
+    <!-- Bibliotecas de Alta Confiabilidade -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
@@ -15,333 +15,74 @@
 
     <style>
         :root { --orange: #FF6600; --black: #000000; --gray: #121212; --card: #1C1C1C; }
-        body { background-color: var(--black); color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; overflow: hidden; }
+        body { background-color: var(--black); color: white; font-family: 'Inter', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        .sidebar { background-color: var(--gray); border-right: 1px solid #333; width: 280px; height: 100vh; flex-shrink: 0; transition: 0.3s; z-index: 50; }
-        .main-content { flex: 1; height: 100vh; overflow-y: auto; padding: 30px; background: var(--black); }
+        /* Sidebar Fixa */
+        .sidebar { background-color: var(--gray); border-right: 1px solid #333; width: 280px; flex-shrink: 0; display: flex; flex-direction: column; z-index: 100; transition: 0.3s; }
+        .main-content { flex: 1; overflow-y: auto; padding: 30px; background: var(--black); }
         
+        /* Menu */
         .menu-item { padding: 14px 24px; display: flex; align-items: center; gap: 15px; cursor: pointer; color: #888; font-weight: 600; font-size: 13px; transition: 0.2s; border-left: 4px solid transparent; text-transform: uppercase; }
         .menu-item:hover, .menu-item.active { background: #1a1a1a; color: var(--orange); border-left-color: var(--orange); }
         
-        .card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 20px; }
-        .btn-orange { background-color: var(--orange); color: white; font-weight: bold; border-radius: 8px; padding: 12px 18px; cursor: pointer; border: none; }
-        .btn-orange:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        /* Componentes */
+        .card { background: var(--card); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+        .btn-orange { background-color: var(--orange); color: white; font-weight: 800; border-radius: 8px; padding: 12px 20px; cursor: pointer; border: none; text-transform: uppercase; transition: 0.2s; }
+        .btn-orange:hover { filter: brightness(1.2); transform: translateY(-1px); }
         
-        input, select, textarea { background: #262626 !important; color: white !important; border: 1px solid #444 !important; padding: 10px; border-radius: 8px; width: 100%; outline: none; margin-top: 5px; }
+        input, select, textarea { background: #262626 !important; color: white !important; border: 1px solid #444 !important; padding: 10px; border-radius: 8px; width: 100%; outline: none; font-weight: 600; }
         input:focus { border-color: var(--orange) !important; }
         
-        .hidden { display: none; }
-        .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; font-size: 11px; color: var(--orange); font-weight: bold; }
         .chart-container { position: relative; height: 250px; width: 100%; }
-
+        .hidden { display: none !important; }
+        .dropzone { border: 2px dashed #444; border-radius: 8px; padding: 15px; text-align: center; cursor: pointer; font-size: 11px; color: var(--orange); font-weight: bold; display: block; }
+        
         @media (max-width: 768px) {
-            .sidebar { position: fixed; left: -280px; }
+            body { flex-direction: column; overflow: auto; }
+            .sidebar { position: fixed; left: -280px; height: 100%; }
             .sidebar.mobile-open { left: 0; }
+            .main-content { height: auto; }
         }
     </style>
 </head>
-<body class="flex">
+<body>
 
     <!-- SIDEBAR -->
-    <nav id="sidebar" class="sidebar flex flex-col no-print">
+    <nav id="sidebar" class="sidebar no-print">
         <div class="p-8 text-center border-b border-gray-800">
             <div class="relative inline-block">
-                <img id="profile-img" src="https://via.placeholder.com/100" class="w-20 h-20 rounded-full border-2 border-orange-500 mx-auto object-cover">
-                <label for="photo-input" class="absolute bottom-0 right-0 bg-orange-500 p-1 rounded-full cursor-pointer text-xs">✏️</label>
-                <input type="file" id="photo-input" class="hidden" accept="image/*">
+                <img id="profile-pic" src="https://via.placeholder.com/100" class="w-20 h-20 rounded-full border-2 border-orange-500 mx-auto object-cover bg-gray-800">
+                <label for="photo-upload" class="absolute bottom-0 right-0 bg-orange-500 p-1.5 rounded-full cursor-pointer shadow-lg hover:scale-110 transition">
+                    <span style="font-size: 10px;">✏️</span>
+                </label>
+                <input type="file" id="photo-upload" class="hidden" accept="image/*">
             </div>
             <h2 class="text-orange-500 font-black italic text-lg uppercase tracking-tighter mt-3">Foco Consultoria</h2>
-            <p class="text-[10px] text-gray-500 uppercase font-bold">Gestão Pessoal 2026</p>
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Gestão Pessoal 2026</p>
         </div>
+        
         <div class="flex-1 mt-4 overflow-y-auto">
-            <div class="menu-item active" onclick="showView('dashboard', this)"><span>📊</span> Dashboard</div>
-            <div class="menu-item" onclick="showView('cadastros', this)"><span>📁</span> Categorias & Bancos</div>
-            <div class="menu-item" onclick="showView('lancamentos', this)"><span>💸</span> Lançamentos & Up</div>
-            <div class="menu-item" onclick="showView('cartoes', this)"><span>💳</span> Cartões de Crédito</div>
-            <div class="menu-item" onclick="showView('timeline', this)"><span>📈</span> Fluxo de Caixa</div>
-            <div class="menu-item" onclick="showView('conversor', this)"><span>💱</span> Conversor</div>
-            <div class="menu-item" onclick="showView('mercado', this)"><span>🏛️</span> Mercado 2026</div>
-            <div class="menu-item" onclick="showView('relatorios', this)"><span>📑</span> Relatórios</div>
+            <div class="menu-item active" onclick="navigate('dashboard', this)"><span>📊</span> Dashboard</div>
+            <div class="menu-item" onclick="navigate('cadastros', this)"><span>📁</span> Categorias & Bancos</div>
+            <div class="menu-item" onclick="navigate('lancamentos', this)"><span>💸</span> Lançamentos & Up</div>
+            <div class="menu-item" onclick="navigate('cartoes', this)"><span>💳</span> Cartões de Crédito</div>
+            <div class="menu-item" onclick="navigate('timeline', this)"><span>📈</span> Fluxo de Caixa</div>
+            <div class="menu-item" onclick="navigate('conversor', this)"><span>💱</span> Conversor</div>
+            <div class="menu-item" onclick="navigate('mercado', this)"><span>🏛️</span> Mercado 2026</div>
+            <div class="menu-item" onclick="navigate('relatorios', this)"><span>📑</span> Relatórios</div>
         </div>
     </nav>
 
-    <!-- MAIN -->
+    <!-- CONTEÚDO -->
     <main class="main-content">
         <header class="flex justify-between items-center mb-8 pb-4 border-b border-gray-800">
             <h1 id="page-title" class="text-xl font-black text-orange-500 italic uppercase">Dashboard</h1>
-            <button class="md:hidden btn-orange" onclick="document.getElementById('sidebar').classList.toggle('mobile-open')">MENU</button>
+            <button class="md:hidden btn-orange py-2" onclick="document.getElementById('sidebar').classList.toggle('mobile-open')">MENU</button>
         </header>
 
-        <div id="views-container">
+        <div id="views">
             
-            <!-- VIEW: DASHBOARD -->
+            <!-- DASHBOARD -->
             <section id="v-dashboard">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 uppercase font-bold text-center">
-                    <div class="card border-l-4 border-green-500"><p class="text-[10px] text-gray-500">Receitas</p><p id="sum-in" class="text-2xl text-green-500">R$ 0,00</p></div>
-                    <div class="card border-l-4 border-red-500"><p class="text-[10px] text-gray-500">Despesas</p><p id="sum-out" class="text-2xl text-red-500">R$ 0,00</p></div>
-                    <div class="card border-l-4 border-orange-500"><p class="text-[10px] text-gray-500">Saldo Atual</p><p id="sum-total" class="text-2xl">R$ 0,00</p></div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="card"><h3 class="text-xs mb-4 uppercase italic">Balanço Financeiro</h3><div class="chart-container"><canvas id="c-bar"></canvas></div></div>
-                    <div class="card"><h3 class="text-xs mb-4 uppercase italic">Evolução do Saldo</h3><div class="chart-container"><canvas id="c-line"></canvas></div></div>
-                </div>
-            </section>
-
-            <!-- VIEW: CADASTROS -->
-            <section id="v-cadastros" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="card">
-                        <h3 class="text-orange-500 font-bold mb-6 italic uppercase tracking-widest">Contas Bancárias</h3>
-                        <div class="space-y-4">
-                            <input type="text" id="b-name" placeholder="Banco (Ex: Nubank)">
-                            <div class="flex gap-2">
-                                <input type="text" id="b-ag" placeholder="Agência">
-                                <input type="text" id="b-cc" placeholder="Conta">
-                            </div>
-                            <input type="number" id="b-bal" placeholder="Saldo Inicial R$">
-                            <button class="btn-orange w-full" onclick="addBank()">SALVAR BANCO</button>
-                        </div>
-                        <div id="list-banks" class="mt-8 space-y-2"></div>
-                    </div>
-                    <div class="card">
-                        <h3 class="text-orange-500 font-bold mb-6 italic uppercase tracking-widest">Categorias</h3>
-                        <div class="flex gap-2 mb-6"><input type="text" id="cat-in" placeholder="Nova Categoria"><button class="btn-orange" onclick="addCat()">+</button></div>
-                        <div id="list-cats" class="flex flex-wrap gap-2"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- VIEW: LANÇAMENTOS -->
-            <section id="v-lancamentos" class="hidden">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="card md:col-span-2 border-orange-500/20">
-                        <h3 class="text-orange-500 font-bold mb-6 italic uppercase underline">Novo Lançamento Manual</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="t-desc" placeholder="Descrição (O que comprou?)">
-                            <input type="number" id="t-val" placeholder="Valor R$">
-                            <input type="date" id="t-date">
-                            <select id="t-type"><option value="Receita">Receita (+)</option><option value="Despesa">Despesa (-)</option></select>
-                            <select id="t-bank" class="md:col-span-2"><option value="">Selecionar Conta/Banco...</option></select>
-                            <button class="btn-orange md:col-span-2" onclick="addTx()">SALVAR MOVIMENTAÇÃO</button>
-                        </div>
-                    </div>
-                    <div class="card bg-gray-950 border-dashed border-2 border-gray-800 text-center uppercase font-bold text-[10px]">
-                        <h3 class="text-orange-500 mb-6 italic text-sm">Upload Inteligente</h3>
-                        <label class="dropzone mb-3 block">📥 EXTRATO OFX/CSV <input type="file" class="hidden" onchange="alert('Importado!')"></label>
-                        <label class="dropzone block">📄 NOTA FISCAL XML <input type="file" class="hidden" onchange="alert('XML Lido!')"></label>
-                    </div>
-                </div>
-                <div class="card overflow-x-auto">
-                    <table class="w-full text-left text-xs font-bold uppercase">
-                        <thead><tr class="text-orange-500 border-b border-gray-800"><th class="p-4">Data</th><th class="p-4">Descrição</th><th class="p-4">Conta</th><th class="p-4 text-right">Valor</th><th class="p-4 text-center">Ação</th></tr></thead>
-                        <tbody id="tx-tbody"></tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- VIEW: CARTÕES -->
-            <section id="v-cartoes" class="hidden">
-                <div class="card mb-8">
-                    <h3 class="text-orange-500 font-bold mb-6 italic uppercase tracking-widest">Gestão de Cartões</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <input type="text" id="c-name" placeholder="Cartão">
-                        <input type="number" id="c-limit" placeholder="Limite">
-                        <input type="number" id="c-fech" placeholder="Dia Fechamento">
-                        <input type="number" id="c-venc" placeholder="Dia Vencimento">
-                        <button class="btn-orange" onclick="addCard()">CADASTRAR</button>
-                    </div>
-                </div>
-                <div id="c-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-            </section>
-
-            <!-- VIEW: TIMELINE -->
-            <section id="v-timeline" class="hidden">
-                <div class="card">
-                    <h3 class="text-orange-500 font-bold mb-10 italic uppercase tracking-widest underline underline-offset-8">Linha do Tempo de Fluxo</h3>
-                    <div id="tl-body" class="relative border-l-2 border-orange-500 ml-4 space-y-10 uppercase text-[10px] font-bold"></div>
-                </div>
-            </section>
-
-            <!-- CONVERSOR -->
-            <section id="v-conversor" class="hidden">
-                <div class="card max-w-lg mx-auto border-orange-500 text-center font-bold">
-                    <h3 class="text-xl mb-6 text-orange-500 uppercase italic">Conversor de Câmbio</h3>
-                    <input type="number" id="cv-amt" value="1" class="text-4xl text-center mb-6">
-                    <select id="cv-f" class="text-xl mb-6"><option value="USD">Dólar (USD)</option><option value="EUR">Euro (EUR)</option><option value="BTC">Bitcoin (BTC)</option></select>
-                    <div class="p-10 bg-black rounded-2xl border border-gray-800">
-                        <p class="text-[10px] text-gray-500 mb-2 uppercase">Valor em Reais (BRL)</p>
-                        <p id="cv-res" class="text-5xl text-orange-500 font-black">R$ 0,00</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- MERCADO -->
-            <section id="v-mercado" class="hidden">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center font-black uppercase text-xs">
-                    <div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-1">Dólar Comercial</p><p id="m-u" class="text-xl">R$ 5,15</p></div>
-                    <div class="card border-t-4 border-white"><p class="text-gray-500 mb-1">Mínimo 2026</p><p class="text-xl text-orange-500">R$ 1.571,00</p></div>
-                    <div class="card border-t-4 border-orange-500"><p class="text-gray-500 mb-1">SELIC</p><p class="text-xl">10.50%</p></div>
-                    <div class="card border-t-4 border-green-500"><p class="text-gray-500 mb-1">Bitcoin</p><p id="m-b" class="text-xl text-green-500">R$ 410k</p></div>
-                </div>
-            </section>
-
-            <!-- RELATÓRIOS -->
-            <section id="v-relatorios" class="hidden">
-                <div class="card bg-orange-950/20 border-orange-500 text-center py-10 font-black italic">
-                    <h3 class="text-2xl mb-10 text-orange-500 uppercase tracking-widest underline">Central de Exportação</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
-                        <button onclick="exportData('pdf')" class="bg-red-900 p-6 rounded-xl hover:bg-red-700">PDF</button>
-                        <button onclick="exportData('xls')" class="bg-green-800 p-6 rounded-xl hover:bg-green-700">EXCEL</button>
-                        <button onclick="exportData('txt')" class="bg-blue-800 p-6 rounded-xl hover:bg-blue-700">TXT</button>
-                        <button onclick="exportData('xml')" class="bg-gray-800 p-6 rounded-xl hover:bg-gray-600">XML</button>
-                    </div>
-                    <button onclick="window.print()" class="w-full btn-orange py-5 text-2xl uppercase tracking-widest italic">🖨️ IMPRIMIR COMPLETO</button>
-                </div>
-            </section>
-
-        </div>
-    </main>
-
-    <script>
-        // --- CONFIGURAÇÃO PDF ---
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-
-        // --- ESTADO GLOBAL ---
-        let state = {
-            transactions: JSON.parse(localStorage.getItem('f_tx')) || [],
-            banks: JSON.parse(localStorage.getItem('f_bn')) || [],
-            categories: JSON.parse(localStorage.getItem('f_ct')) || ['Moradia', 'Salário', 'Mercado'],
-            cards: JSON.parse(localStorage.getItem('f_cr')) || [],
-            profile: JSON.parse(localStorage.getItem('f_pr')) || { name: 'Ricardo', photo: 'https://via.placeholder.com/100' },
-            market: { usd: 5.15, btc: 410000 }
-        };
-
-        function save() {
-            localStorage.setItem('f_tx', JSON.stringify(state.transactions));
-            localStorage.setItem('f_bn', JSON.stringify(state.banks));
-            localStorage.setItem('f_ct', JSON.stringify(state.categories));
-            localStorage.setItem('f_cr', JSON.stringify(state.cards));
-            localStorage.setItem('f_pr', JSON.stringify(state.profile));
-            render();
-        }
-
-        // --- NAVEGAÇÃO ---
-        function showView(id, el) {
-            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-            document.getElementById('v-' + id).classList.remove('hidden');
-            el.classList.add('active');
-            document.getElementById('page-title').innerText = id.toUpperCase();
-            if(id === 'dashboard') initCharts();
-            document.getElementById('sidebar').classList.remove('mobile-open');
-        }
-
-        // --- CRUD ---
-        function addBank() {
-            const n = document.getElementById('b-name').value;
-            const a = document.getElementById('b-ag').value;
-            const c = document.getElementById('b-cc').value;
-            const b = document.getElementById('b-bal').value || 0;
-            if(!n) return;
-            state.banks.push({ id: Date.now(), name: n, ag: a, cc: c, balance: b });
-            save(); document.getElementById('b-name').value = '';
-        }
-
-        function addCat() {
-            const n = document.getElementById('cat-in').value;
-            if(n) { state.categories.push(n); save(); document.getElementById('cat-in').value = ''; }
-        }
-
-        function addTx() {
-            const d = document.getElementById('t-desc').value;
-            const v = document.getElementById('t-val').value;
-            const dt = document.getElementById('t-date').value;
-            const t = document.getElementById('t-type').value;
-            const b = document.getElementById('t-bank').value;
-            if(!d || !v || !dt) return alert('Preencha os campos!');
-            state.transactions.push({ id: Date.now(), desc: d, value: v, date: dt, type: t, bank: b });
-            save(); document.getElementById('t-desc').value = ''; document.getElementById('t-val').value = '';
-        }
-
-        function addCard() {
-            const n = document.getElementById('c-name').value;
-            const l = document.getElementById('c-limit').value;
-            const f = document.getElementById('c-fech').value;
-            const v = document.getElementById('c-venc').value;
-            if(!n || !l) return;
-            state.cards.push({ id: Date.now(), name: n, limit: l, used: 0, fech: f, venc: v });
-            save(); document.getElementById('c-name').value = '';
-        }
-
-        // --- LEITURA REAL PDF INTER ---
-        async function readInterPDF(event, cardId) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-            reader.onload = async function() {
-                const typedarray = new Uint8Array(this.result);
-                const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                let fullText = "";
-                for(let i=1; i<=Math.min(pdf.numPages, 2); i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    fullText += content.items.map(it => it.str).join(" ");
-                }
-                const valorM = fullText.match(/Total da sua fatura\s*R\$\s*([\d.,]+)/i);
-                const dataM = fullText.match(/Vencimento\s*(\d{2}\/\d{2}\/\d{4})/i);
-                if(valorM && dataM) {
-                    const val = parseFloat(valorM[1].replace(/\./g, '').replace(',', '.'));
-                    state.transactions.push({ id: Date.now(), desc: `Fatura: ${file.name}`, value: val, date: dataM[1].split('/').reverse().join('-'), type: 'Despesa', bank: 'Cartão Inter' });
-                    state.cards = state.cards.map(c => c.id === cardId ? {...c, used: val} : c);
-                    save(); alert("Fatura de R$ " + val.toLocaleString('pt-BR') + " importada com sucesso!");
-                } else { alert("Erro ao ler PDF. Certifique-se que é a fatura original do Banco Inter."); }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        // --- RENDER ---
-        function render() {
-            const tin = state.transactions.filter(t => t.type === 'Receita').reduce((a,b) => a + parseFloat(b.value), 0);
-            const tout = state.transactions.filter(t => t.type === 'Despesa').reduce((a,b) => a + parseFloat(b.value), 0);
-            document.getElementById('sum-in').innerText = 'R$ ' + tin.toLocaleString('pt-BR');
-            document.getElementById('sum-out').innerText = 'R$ ' + tout.toLocaleString('pt-BR');
-            document.getElementById('sum-total').innerText = 'R$ ' + (tin - tout).toLocaleString('pt-BR');
-
-            // Foto Perfil
-            document.getElementById('profile-img').src = state.profile.photo;
-
-            // Lista Bancos
-            const bL = document.getElementById('list-banks'); bL.innerHTML = '';
-            state.banks.forEach(b => bL.innerHTML += `<div class="bg-gray-800 p-4 rounded-xl flex justify-between border-l-4 border-orange-500 font-bold text-[10px] uppercase"><span>${b.name} (AG:${b.ag} CC:${b.cc}) | SALDO: R$ ${b.balance}</span><button onclick="state.banks=state.banks.filter(x=>x.id!==${b.id});save()">🗑️</button></div>`);
-
-            // Lista Categorias
-            const cL = document.getElementById('list-cats'); cL.innerHTML = '';
-            state.categories.forEach(c => cL.innerHTML += `<span class="bg-gray-800 px-3 py-1 rounded-full text-[10px] border border-gray-700 font-bold uppercase">${c}</span>`);
-
-            // Select Bancos
-            const bS = document.getElementById('t-bank'); bS.innerHTML = '<option value="">Selecionar Conta...</option>';
-            state.banks.forEach(b => bS.innerHTML += `<option value="${b.name}">${b.name}</option>`);
-
-            // Tabela TX
-            const tb = document.getElementById('tx-tbody'); tb.innerHTML = '';
-            state.transactions.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => tb.innerHTML += `<tr class="border-b border-gray-900"><td class="p-4">${t.date}</td><td class="p-4">${t.desc}</td><td class="p-4 italic text-gray-500">${t.bank}</td><td class="p-4 text-right font-black ${t.type==='Receita'?'text-green-500':'text-red-500'}">R$ ${parseFloat(t.value).toLocaleString('pt-BR')}</td><td class="p-4 text-center"><button onclick="state.transactions=state.transactions.filter(x=>x.id!==${t.id});save()">🗑️</button></td></tr>`);
-
-            // Cards
-            const cG = document.getElementById('c-grid'); cG.innerHTML = '';
-            state.cards.forEach(c => cG.innerHTML += `<div class="card border-l-4 border-orange-500 font-bold uppercase"><div class="flex justify-between mb-4"><span>${c.name}</span><button onclick="state.cards=state.cards.filter(x=>x.id!==${c.id});save()">🗑️</button></div><div class="w-full bg-gray-800 h-2 rounded-full mb-3 overflow-hidden"><div class="bg-orange-500 h-full" style="width:${Math.min((c.used/c.limit)*100, 100)}%"></div></div><div class="flex justify-between text-[9px] text-gray-500 mb-4"><span>LIMITE: R$ ${c.limit}</span><span>USADO: R$ ${c.used}</span></div><p class="text-[9px] text-orange-500 mb-4 italic">Venc: Dia ${c.venc}</p><label class="dropzone block">📤 UPLOAD PDF INTER <input type="file" class="hidden" onchange="readInterPDF(event, ${c.id})"></label></div>`);
-
-            // Timeline
-            const tl = document.getElementById('tl-body'); tl.innerHTML = '';
-            state.transactions.forEach(t => tl.innerHTML += `<div class="relative pl-10"><div class="absolute -left-[11px] top-0 w-5 h-5 rounded-full bg-black border-2 border-orange-500"></div><div class="bg-gray-900 p-4 rounded-xl flex justify-between border border-gray-800"><div><p class="text-[9px] text-gray-500 mb-1">${t.date}</p><p>${t.desc}</p></div><p class="${t.type==='Receita'?'text-green-500':'text-red-500'}">R$ ${parseFloat(t.value).toLocaleString('pt-BR')}</p></div></div>`);
-            
-            updateCv();
-        }
-
-        // --- GRÁFICOS ---
-        let bar, line;
-        function initCharts() {
-            const ctxB = document.getElementById('c-bar'); const ctxL = document.getElementById('c-line');
-            if(!ctxB) return; if(bar) bar.destroy(); if(line) line.destroy();
-            const tin = state.transactions.filter(t => t.type === 'Receita').reduce((a,b) => a + parseFloat(b.value), 0);
-            const tout = state.transactions.filter(t => t.type === 'Despesa').reduce((a,b) => a + parseFloat(b.value), 0);
-            bar = new Chart(ctxB, { type: 'bar', data: { labels: ['Entradas', 'Saídas'], datasets: [{ data: [tin, tout], backgroundColor: ['#22c55e', '#ef4444'], borderRadius: 6 }] }, options: { maintainAspectRatio: false } });
-            line = new Chart(ctxL, { type: 'line', data: { labels: state.transactions.slice(-5).map(t => t.date), datasets: [{ data: state.transactions.slice(-5).map(t => t.value), borderColor: '#FF6600', tension: 0.4 }] }, options:
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 uppercase font-black text-center">
+                    <div class="card border-l-4 border-green-500"><p class="text-[10px] text-gray-500 mb-1">Entradas</p><p id="dash-in" class="text-3xl text-gree
